@@ -1,0 +1,30 @@
+## @file
+#  HypeDrain - Post-reboot drain tool for the HypeDebug 4MB ring buffer.
+#  UEFI Shell application: scans physical memory, dumps log to .bin file.
+##
+
+[Defines]
+  INF_VERSION     = 0x00010017
+  BASE_NAME       = HypeDrain
+  FILE_GUID       = A3C7E1F5-82D4-4B6E-9F01-2D5A8C3E7B94
+  MODULE_TYPE     = UEFI_APPLICATION
+  VERSION_STRING  = 1.0
+  ENTRY_POINT     = HypeDrainEntry
+
+[Sources]
+  HypeDrain.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseLib
+  BaseMemoryLib
+  PrintLib
+
+[Protocols]
+  gEfiLoadedImageProtocolGuid             ## CONSUMES
+  gEfiSimpleFileSystemProtocolGuid        ## CONSUMES

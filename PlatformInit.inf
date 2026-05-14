@@ -1,0 +1,91 @@
+## @file
+#  HypeLoader - AMD SVM Type-0 Hypervisor UEFI DXE Driver
+#
+#  This driver loads during UEFI boot and virtualizes the CPU
+#  before Windows takes control. Windows runs as an unknowing guest.
+#
+#  Copyright (c) 2024, HypeLoader Project
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010017
+  BASE_NAME                      = PlatformInit
+  FILE_GUID                      = 8A7B4F2E-1C3D-4E5F-9A8B-0C1D2E3F4A5B
+  MODULE_TYPE                    = DXE_RUNTIME_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = HypeLoaderEntry
+
+#
+# VALID_ARCHITECTURES = X64
+#
+
+[Sources]
+  HypeEntry.c
+  HypeUefi.h
+  HypeSvm.h
+  HypeContext.h
+  HypeVmcb.h
+  HypeNpt.h
+  HypeIdt.h
+  HypeMemory.h
+  HypeCore.c
+  HypeVmcb.c
+  HypeNpt.c
+  HypeVmexit.c
+  HypeIdt.c
+  HypeDebug.h
+  HypeDebug.c
+  HypeHookDraw.h
+  HypeHookDraw.c
+  HypeAimTrigger.h
+  HypeAimTrigger.c
+  HypeMenu.h
+  HypeMenu.c
+  HypeVmrun.nasm
+  HypeIsr.nasm
+
+[Sources.X64]
+  # X64-specific assembly if needed
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UefiCpuPkg/UefiCpuPkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
+  BaseLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  DebugLib
+  PrintLib
+  CpuLib
+  CompilerIntrinsicsLib
+
+[Protocols]
+  gEfiMpServiceProtocolGuid              ## CONSUMES
+  gEfiLoadedImageProtocolGuid            ## CONSUMES
+  gEfiTcg2ProtocolGuid                   ## SOMETIMES_CONSUMES
+
+[Guids]
+  gEfiEventExitBootServicesGuid          ## CONSUMES
+
+[BuildOptions]
+  # Enable AMD SVM instructions
+  # Use default small code model - no special flags needed
+  GCC:*_*_X64_CC_FLAGS = -mno-red-zone -fno-stack-protector -mabi=ms -mno-sse -mno-sse2 -msoft-float
+  GCC:*_*_X64_NASM_FLAGS = -f elf64
+
+  MSFT:*_*_X64_CC_FLAGS = /GS- /Gy /wd4210 /wd4244 /wd4702
+  MSFT:*_*_X64_NASM_FLAGS = -f win64
+
+[Depex]
+  gEfiMpServiceProtocolGuid
+
+[Pcd]
+  # Performance counter frequency (optional)
+  # gEfiMdePkgTokenSpaceGuid.PcdPerformanceLibraryPropertyMask

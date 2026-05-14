@@ -1,0 +1,492 @@
+# HvLog/HvLogHex String Decoder - HypeLoader v1.42
+# Use with DMA debug log to decode stripped codes.
+# Synced 2026-04-25 to live emit sites.
+
+## HypeCore.c
+  C01 = HvLogHex("MAP: CPUs", ...)
+  C02 = HvLogHex("VCPU: PA", ...)
+  C03 = HvLogHex("VCPU: stride", ...)
+  C04 = HvLogHex("VCPU: bulk PA", ...)
+  C05 = HvLogHex("VCPU: bulk pages", ...)
+  C06 = HvLogHex("HOST CR3", ...)
+  C08 = HvLogHex("AP init: failed CPU", ...)
+  C14 = HvLogHex("INIT: CPUs", ...)
+  C15 = HvLogHex("INIT: VMCB", ...)
+  C16 = HvLogHex("XSAVE: alloc fail CPU", ...)
+  C17 = HvLogHex("XSAVE: size", ...)
+  C18 = HvLogHex("XSAVE: mask", ...)
+  C19 = HvLogHex("VERIFY: CPU", ...)
+  C20 = HvLogHex("VERIFY: VMCB PA", ...)
+  C21 = HvLogHex("VERIFY: CPU", ...)
+  C22 = HvLogHex("VERIFY: CPU", ...)
+  C23 = HvLogHex("VERIFY: CPU", ...)
+  C24 = HvLogHex("!!! HSAVE NOT PROTECTED", ...)
+  C25 = HvLogHex("!!! HOST STACK NOT FULLY PROTECTED", ...)
+  C26 = HvLogHex("VERIFY: CPU", ...)
+  C27 = HvLogHex("VERIFY: VcpuTable PA", ...)
+  C28 = HvLogHex("NPT verify: ERRORS", ...)
+  C29 = HvLogHex("AP INIT FAIL", ...)
+  C30 = HvLogHex("AP LAUNCH: starting APs", ...)
+  C31 = HvLogHex("AP LAUNCH: fail", ...)
+  C32 = HvLogHex("AP LAUNCH: failed CPU", ...)
+  C33 = HvLogHex("PRE: VMCB PA", ...)
+  C34 = HvLogHex("PRE: NCr3", ...)
+  C35 = HvLogHex("PRE: EFER", ...)
+  C36 = HvLogHex("PRE: TR.Attr", ...)
+  C37 = HvLogHex("PRE: CR4 adjusted", ...)
+  C38 = HvLogHex("PRE: HostCR3", ...)
+  C39 = HvLog("!!! AP: ProcessorNumber out of range !!!\n")
+  C40 = HvLog("!!! AP: Bad VcpuIndex mapping !!!\n")
+  C41 = HvLog("!!! AP mapped to VcpuIndex 0 (BSP) !!!\n")
+  C42 = HvLog("!!! AP SVM enable FAIL !!!\n")
+  C43 = HvLog("!!! AP VMCB init FAIL !!!\n")
+  C44 = HvLog("!!! AP HSAVE MISMATCH !!!\n")
+  C47 = HvLog("AP init: timeout (5s)\n")
+  C51 = HvLog("VCPU: bulk fail, per-CPU fallback\n")
+  C52 = HvLog("HOST PT: build fail\n")
+  C54 = HvLog("!!! VMCB PTE IS 2MB (SPLIT FAILED) !!!\n")
+  C55 = HvLog("!!! VMCB PTE PRESENT WITH REAL PA !!!\n")
+  C56 = HvLog("!!! VMCB PTE IS NULL !!!\n")
+  C57 = HvLog("!!! PD ENTRY STILL 2MB  - SPLIT NEVER HAPPENED !!!\n")
+  C58 = HvLog("!!! VCPU TABLE NOT PROTECTED !!!\n")
+  C59 = HvLog("NPT verify: all OK\n")
+  C60 = HvLog("AP LAUNCH: skip (no MP or single-core)\n")
+  C61 = HvLog("AP LAUNCH: timeout (10s)\n")
+  C62 = HvLog("AP LAUNCH: all APs virtualized\n")
+  C63 = HvLog("BSP: START\n")
+  C64 = HvLog("!!! BSP HSAVE MISMATCH !!!\n")
+  C65 = HvLog("VMRUN: BSP exec\n")
+  C66 = HvLog("VMRUN: BSP guest return\n")
+  C68 = HvLog("BSP post-VMRUN\n")
+  C69 = HvLog("HSAVE_PA readback mismatch (SvmEnableOnCpu)\n")
+  C79 = HvLogHex("BSP: VmexitCount at image protect", ...)
+  C80 = HvLogHex("AP LAUNCH: first failure index", ...)
+  C81 = HvLogHex("AP LAUNCH: total APs attempted", ...)
+  C82 = HvLogHex("NPT PRESPLIT: total new pages", ...)
+  C83 = HvLogHex("NPT PRESPLIT: passes", ...)
+  C84 = HvLog("DECOY POOL: init fail (non-fatal)\n")
+  C85 = HvLogHex("DECOY POOL: requested pages", ...)
+  C86 = HvLog("!!! VMCB NOT PROTECTED !!!\n")
+
+## HypeEntry.c
+  E09 = HvLogHex("IMG: base", ...)
+  E10 = HvLogHex("IMG: size", ...)
+  E11 = HvLogHex("INIT: cycles", ...)
+  E22 = HvLog("ENTRY\n")
+  E23 = HvLog("!!! LoadedImage FAIL !!!\n")
+  E44 = HvLog("About to call InitializeMpServices\n")
+  E45 = HvLog("InitializeMpServices FAIL\n")
+  E46 = HvLogHex("InitializeMpServices status", ...)
+  E47 = HvLog("MP init OK\n")
+  E48 = HvLogHex("MP: processor count", ...)
+  E49 = HvLog("About to call HypeInit\n")
+  E50 = HvLog("HypeInit FAILED\n")
+  E51 = HvLogHex("HypeInit status", ...)
+  E54 = HvLog("Init complete\n")
+  # E52, E53 retired — HypeInit NTSTATUS variant no longer emitted
+  EBP = HvLog("EBP\n")                              # post-init checkpoint, immediately after E54 in HypeInit
+  E63 = HvLog("All APs in VMRUN\n")                 # LaunchAllAPs OK (phase 3)
+  E64 = HvLog("AP launch failed\n")
+  E65 = HvLogHex("AP launch NTSTATUS", ...)
+  E66 = HvLog("BSP virtualized\n")                  # HypeStartBsp OK (phase 3)
+  E67 = HvLog("BSP virtualization failed\n")
+  E68 = HvLogHex("BSP NTSTATUS", ...)
+  # E01-E08, E12-E21, E24-E28, E34-E43: removed with TPM-scrub / SecureBoot-spoof / EBS hook (pre-phase-3)
+
+## SvmCheckSupport (HypeCore.c)
+  S01 = HvLogHex("CPUID(0) EBX", ...)
+  S02 = HvLogHex("CPUID(0) EDX", ...)
+  S03 = HvLogHex("CPUID(0) ECX", ...)
+  S04 = HvLog("FAIL: not AMD vendor\n")
+  S05 = HvLogHex("CPUID(0x80000001) ECX", ...)
+  S06 = HvLog("FAIL: SVM not supported\n")
+  S07 = HvLogHex("CPUID(0x8000000A) EDX", ...)
+  S08 = HvLog("FAIL: NPT not supported\n")
+  S09 = HvLog("WARN: VNMI not advertised (continuing)\n")
+  S0A = HvLogHex("VM_CR MSR value", ...)
+  S0B = HvLog("FAIL: SVM disabled + locked\n")
+  S0C = HvLogHex("VM_CR after clear attempt", ...)
+  S0D = HvLog("FAIL: could not clear SVMDIS\n")
+  S10 = HvLog("SvmCheckSupport: all checks passed\n")
+
+## HypeVmexit.c
+  V01 = HvLogHex("NPF: exec prot", ...)
+  V02 = HvLogHex("NPF: decoy fail", ...)
+  V03 = HvLogHex("NPF: unexpected GPA", ...)
+  V04 = HvLogHex("NPF: ErrorCode", ...)
+  V05 = HvLogHex("NPF: guest RIP", ...)
+  V06 = HvLogHex("CPU", ...)
+  V07 = HvLogHex("RIP", ...)
+  V08 = HvLogHex("CR0", ...)
+  V09 = HvLogHex("CR3", ...)
+  V0A = HvLogHex("V0A unhandled in-range NPF GPA", ...)   # FaultGpa, first 100 distinct
+  V0B = HvLogHex("V0B unhandled NPF RIP", ...)            # paired with V0A
+  V0C = HvLogHex("V0C unhandled NPF CPU/Err", ...)        # (CpuNumber<<32)|ErrorCode, paired with V0A
+  V10 = HvLogHex("CR4", ...)
+  V11 = HvLogHex("EFER", ...)
+  V12 = HvLogHex("ASID", ...)
+  V13 = HvLogHex("Misc2", ...)
+  V14 = HvLogHex("MSRPM", ...)
+  V15 = HvLogHex("NCr3", ...)
+  V16 = HvLogHex("CS.Attr", ...)
+  V17 = HvLogHex("TR.Attr", ...)
+  V20 = HvLogHex("V20 Cr3 Phase 1 ImageBase", ...)
+  V21 = HvLogHex("V21 Cr3 Phase 1 not found", ...)
+  V23 = HvLogHex("V23 Cr3 Phase 2/4 not found", ...)
+  V24 = HvLogHex("V24 Cr3 Phase 1 PEB", ...)
+  V25 = HvLogHex("V25 Cr3 Phase 1 PID", ...)
+  V26 = HvLogHex("V26 Cr3 Phase 4 ImageBase", ...)
+  V2F = HvLogHex("V2F Cr3 Phase 1 DTB sanity miss", ...)   # Path A: KPROCESS+0x28 read but rejected (zero, unaligned, or > Limit). Recovery aborts to phase=3, peb=0.
+  # V18, V19, V22, V27 retired (formerly canary-dump, moved to VK0-VK9 to end namespace collision with V20-V26)
+  # V28-V33 retired (formerly NPT-PTE periodic check, moved to VKA-VKF for parallel naming)
+
+## VMCB self-check dumps (one-shot per fault, paired with V53/V54 banner)
+  VK0 = HvLogHex("VK0 CANARY: CpuNumber", ...)        # V53 banner: VMCB canary mismatch
+  VK1 = HvLogHex("VK1 CANARY: VmexitCount", ...)
+  VK2 = HvLogHex("VK2 CANARY: CtrlVal", ...)          # current canary at VMCB+0x2E0 (expected gBootCanary)
+  VK3 = HvLogHex("VK3 CANARY: SaveVal", ...)          # current canary at VMCB+0x6F0
+  VK4 = HvLogHex("VK4 CANARY: Rip", ...)
+  VK5 = HvLogHex("VK5 CANARY: Rsp", ...)
+  VK6 = HvLogHex("VK6 CANARY: Rflags", ...)
+  VK7 = HvLogHex("VK7 CANARY: IDTR.Base", ...)
+  VK8 = HvLogHex("VK8 CANARY: IDTR.Limit", ...)
+  VK9 = HvLogHex("VK9 CANARY: ExitCode", ...)
+  VKA = HvLogHex("VKA NPTCHK: CpuNumber", ...)        # V54 banner: VMCB PTE periodic check OK
+  VKB = HvLogHex("VKB NPTCHK: VmexitCount", ...)
+  VKC = HvLogHex("VKC NPTCHK: PteVal (OK path)", ...)
+  VKD = HvLogHex("VKD NPTCHK: VMCB PA (OK path)", ...)
+  VKE = HvLogHex("VKE NPTCHK: PteVal (mismatch path, ≤1024 exits)", ...)
+  VKF = HvLogHex("VKF NPTCHK: VMCB PA (mismatch path)", ...)
+  V35 = HvLogHex("SHUTDOWN RIP", ...)
+  V36 = HvLogHex("SHUTDOWN RSP", ...)
+  V37 = HvLogHex("SHUTDOWN CR3", ...)
+  V38 = HvLogHex("SHUTDOWN CR0", ...)
+  V39 = HvLogHex("SHUTDOWN EFER", ...)
+  V40 = HvLogHex("SHUTDOWN ExitInfo1", ...)
+  V41 = HvLogHex("SHUTDOWN ExitInfo2", ...)
+  V42 = HvLogHex("EXIT: UNHANDLED", ...)
+  V43 = HvLogHex("UNHANDLED RIP", ...)
+  V44 = HvLogHex("UNHANDLED CR3", ...)
+  V45 = HvLogHex("UNHANDLED ExitInfo1", ...)
+  V46 = HvLogHex("UNHANDLED ExitInfo2", ...)
+  V51 = HvLog("!!! VMEXIT_INVALID !!!\n")
+  V52 = HvLog("INVALID: FROZEN\n")
+  V53 = HvLog("!!! VMCB CANARY CORRUPT !!!\n")
+  V54 = HvLog("!!! NPT VMCB EXPOSED !!!\n")
+  V55 = HvLog("NPTCHK: OK (not present)\n")
+  V56 = HvLog("NPTCHK: OK (decoy)\n")
+  V58 = HvLog("!!! SHUTDOWN (triple fault) !!!\n")
+  V6C = HvLogHex("V6C PROC_CR3 result", ...)              # Vcpu->TargetCr3 returned to client (covert PMC_CMD_PROC_CR3)
+  V6D = HvLogHex("V6D PROC_CR3 captured ImageBase", ...)  # Vcpu->Cr3InterceptCapturedImageBase returned in Cmd->Arg2
+  V6E = HvLogHex("V6E PROC_CR3 status", ...)              # COVERT_STATUS_OK on this path
+  V72 = HvLogHex("V72 captured CR3", ...)                 # Cr3PassiveSample success: TargetCr3 broadcast to all VCPUs
+  V73 = HvLogHex("V73 captured PEB", ...)                 # gCr3SamplePebVa or gCr3SampleImageBase (broadcast sentinel)
+
+## VmexitHandler diagnostic (BSP-only, first 32 exits)
+  VE1 = HvLogHex("VE1 BSP ExitCode", ...)         # ExitCode of each of BSP's first 32 VMEXITs
+  VE2 = HvLogHex("VE2 BSP RIP", ...)              # guest RIP at exit, paired with VE1
+
+## HypeNpt.c
+  N01 = HvLogHex("NPT: PML4", ...)
+  N02 = HvLogHex("NPT: bulk pages", ...)
+  N03 = HvLogHex("NPT: PML4", ...)
+  N04 = HvLogHex("NPT: pages protected", ...)
+  N05 = HvLogHex("NPT: merged regions", ...)
+  N06 = HvLogHex("NPT: split FAIL addr", ...)
+  N07 = HvLogHex("NPT: split FAIL status", ...)
+  N10 = HvLogHex("NPT: NULL PTE for addr", ...)
+  N11 = HvLogHex("NPT: splits", ...)
+  N12 = HvLogHex("NPT: revokes", ...)
+  N13 = HvLogHex("NPT: zero page PA", ...)
+  N14 = HvLog("NPT: bulk track fail, fallback\n")
+  N15 = HvLog("NPT: bulk alloc fail, fallback\n")
+  N16 = HvLog("NPT: PML4 alloc fail\n")
+  N17 = HvLog("NPT: per-page fallback OK\n")
+  N18 = HvLog("NPT: zero page allocated\n")
+  N19 = HvLog("NPT: zero page alloc failed (non-fatal)\n")
+  NSP = HvLogHex("NPT: spare PT pages", ...)
+
+## HypeIdt.c
+  I01 = HvLogHex("IDT: base", ...)
+  I03 = HvLogHex("vec", ...)
+  I04 = HvLogHex("err", ...)
+  I05 = HvLogHex("RIP", ...)
+  I06 = HvLogHex("RSP", ...)
+  I07 = HvLogHex("CR3", ...)
+  I08 = HvLogHex("CR2", ...)
+  I09 = HvLog("IDT: init OK\n")
+  I10 = HvLog("!!! FATAL: IDTR.Base mismatch !!!\n")
+  I11 = HvLog("!!! EXCEPTION !!!\n")
+  I12 = HvLog("HALTED\n")
+
+## Phase 3 — INIT/SIPI via VM_CR.R_INIT + #SX + LAPIC NPT shadow
+  V80 = HvLogHex("VM_CR before", ...)             # per-CPU, pre R_INIT write
+  V81 = HvLogHex("VM_CR after", ...)              # per-CPU, post R_INIT write
+  V82 = HvLog("V82 VM_CR locked\n")               # LOCK=1, R_INIT didn't stick
+  V83 = HvLog("V83 x2APIC present at install\n")  # guest in x2APIC at shadow-install time
+  V84 = HvLogHex("V84 lapic GPA", ...)            # xAPIC MMIO base (typ 0xFEE00000)
+  V85 = HvLog("V85 x2APIC promote (mid-bringup)\n")# guest tried to set IA32_APIC_BASE.bit10
+  V86 = HvLogHex("V86 ICR decode fail", ...)      # NumOfBytesFetched or opcode mismatch
+  V87 = HvLogHex("V87 ICR unknown APIC ID", ...)  # dest not in VcpuTable
+  V88 = HvLogHex("V88 ICR INIT", ...)             # directed: (dest<<24)|icrLow; broadcast: raw icrLow
+  V89 = HvLogHex("V89 last SIPI delivered", ...)  # one-shot when gRemainingSipiCount hits 0 (paired with V93 disarm)
+  V8A = HvLogHex("V8A #SX SIPI-spin heartbeat", ...) # (ApicId<<32)|ActivityState — every ~1M CpuPause()
+  V8B = HvLogHex("V8B ICR_LOW read on armed shadow", ...) # FaultGpa — read fell through, routed to passthrough (latent-defect guard)
+  V8C = HvLogHex("V8C ICR STARTUP", ...)          # raw icrLow when Mode==STARTUP (paired with V88 INIT path)
+  V90 = HvLogHex("V90 #SX SIPI-spin TIMEOUT", ...) # ApicId — bailed after ~64M pauses, AP runs from 0:0
+  V9A = HvLogHex("V9A #SX spurious 2nd INIT ignored", ...) # ApicId — SipiApplied gate fired
+  V9B = HvLogHex("V9B SHUTDOWN CpuNumber", ...)    # CpuNumber that triple-faulted; BSP devirts, AP halts
+  V9D = HvLogHex("V9D post-disarm 0x830 intercept", ...) # guest RIP — MSRPM stale on this CPU post-V93
+  # V9C removed cycle 14 — LAPIC page stays write-protected post-V93 to enable EOI trap (M0F). V9C would flood.
+  V91 = HvLogHex("V91 #SX enter", ...)            # per-AP, ApicId
+  V92 = HvLogHex("V92 SIPI vector applied", ...)  # per-AP, vec (CS.Base = vec<<12)
+  V93 = HvLog("V93 intercept off\n")              # emitted from DisableLapicIntercept
+  V94 = HvLogHex("V94 LAPIC write", ...)          # (offset<<32)|value32 — first 64 ops
+  V95 = HvLogHex("V95 LAPIC read",  ...)          # (offset<<32)|value32 — first 64 ops
+  V96 = HvLogHex("V96 AP OP_START entry", ...)    # (ApicId<<16)|CpuNumber — per AP
+  V97 = HvLogHex("V97 AP post-capture", ...)      # ApicId, after VmcbCapture+CLI+HostIdtLoad
+  V98 = HvLogHex("V98 AP pre-SvmLaunch", ...)     # ApicId, after CR3/CR4 switch
+  V99 = HvLogHex("V99 AP post-SvmLaunch", ...)    # ApicId, guest-mode past VMRUN boundary
+  VAR = HvLogHex("VAR MSR read",  ...)             # MSR# of first 256 read VMEXITs
+  VAW = HvLogHex("VAW MSR write", ...)             # MSR# of first 256 write VMEXITs
+  VBR = HvLogHex("VBR MSR-read RIP",  ...)         # RIP paired with VAR
+  VBW = HvLogHex("VBW MSR-write RIP", ...)         # RIP paired with VAW
+  VA1 = HvLogHex("VA1 EFER.SVME strip", ...)       # full EFER value written by guest (first 4)
+
+## 0x101 IPI-stall instrumentation (post-efc60c1 never-disarm workaround)
+  VAA = HvLogHex("VAA PAT MSR per CPU first VMEXIT", ...)        # MSR 0x277 — full 8-entry PAT
+  VAB = HvLogHex("VAB MTRRdef per CPU first VMEXIT", ...)        # (CpuNumber<<32)|MSR 0x2FF (E/FE/type)
+  VAC = HvLogHex("VAC MTRRcap per CPU first VMEXIT", ...)        # MSR 0xFE (variable-MTRR count)
+  VAD = HvLogHex("VAD slow VMEXIT delta cycles", ...)            # __rdtsc delta > 200K cy
+  VAE = HvLogHex("VAE slow VMEXIT cpu/exit", ...)                # (CpuNumber<<32)|ExitCode — paired with VAD
+  VAF = HvLogHex("VAF late STARTUP on applied AP", ...)          # ApicId — kernel re-fired STARTUP post-Phase-3
+  VAG = HvLogHex("VAG slow VMEXIT branch/gpa", ...)              # (LastNpfBranch<<56)|FaultGpa[55:0] — paired with VAD
+  VAH = HvLogHex("VAH slow VMEXIT guest RIP", ...)               # paired with VAD
+  VAI = HvLogHex("VAI slow VMEXIT guest CR3", ...)               # paired with VAD
+  VAJ = HvLogHex("VAJ Cr3PassiveSample slow", ...)               # rdtsc delta of one GET_INTERCEPT_PEB batch (>2.5 Mcy); batch caps at 2 Mcy
+  VAK = HvLogHex("VAK Cr3PassiveSample state", ...)              # (gCr3SampleCursor<<32)|phase at batch exit
+  VAL = HvLogHex("VAL covert batch state on slow", ...)          # (NumCmds<<32)|(LastCmdSlot<<16)|LastCmdId
+  VAM = HvLogHex("VAM NptRemap+FlushAllTlb slow", ...)           # __rdtsc delta of protected-GPA decoy remap
+  VAN = HvLogHex("VAN NptRemap FaultGpa", ...)                   # paired with VAM
+  VBE = HvLogHex("VBE any-CPU rearm-branch reached", ...)        # (CpuNumber<<32)|VmexitCount; fires every 256 exits any CPU, capped at 256 global
+# LastNpfBranch encoding: 0x01=LAPIC ICR, 0x02=LAPIC pass, 0x03=covert teardown,
+# 0x04=covert auth-fail trigger, 0x05=covert batch, 0x06=draw hook,
+# 0x07=protected GPA decoy remap, 0x08=out-of-range GPA, 0x09=unhandled NPF,
+# 0x0A=covert seq-replay reject (Mailbox->Sequence <= LastCovertSequence).
+
+## MSR/EFER/NPF #GP injection trace (paired triplets — leading marker + RIP + faulting MSR or GPA)
+  VGA  = HvLog("VGA\n")                            # WRMSR EFER with reserved bits set → #GP
+  VGARIP = HvLogHex("VGARIP", ...)                 #   paired RIP
+  VGAMSR = HvLogHex("VGAMSR", ...)                 #   paired MSR#
+  VGB    = HvLog("VGB\n")                          # WRMSR EFER LME=0 with CR0.PG=1 → #GP
+  VGBRIP = HvLogHex("VGBRIP", ...)
+  VGBMSR = HvLogHex("VGBMSR", ...)
+  VGC    = HvLog("VGC\n")                          # WRMSR EFER LME=1 without CR4.PAE → #GP
+  VGCRIP = HvLogHex("VGCRIP", ...)
+  VGCMSR = HvLogHex("VGCMSR", ...)
+  VGD    = HvLog("VGD\n")                          # x2APIC promotion attempt while LAPIC NPT shadow still armed → #GP
+  VGDRIP = HvLogHex("VGDRIP", ...)
+  VGDMSR = HvLogHex("VGDMSR", ...)
+  VGE    = HvLog("VGE\n")                          # WRMSR to invalid/unsupported MSR# → #GP
+  VGERIP = HvLogHex("VGERIP", ...)
+  VGEMSR = HvLogHex("VGEMSR", ...)
+  VGF    = HvLog("VGF\n")                          # RDMSR from invalid/unsupported MSR# → #GP
+  VGFRIP = HvLogHex("VGFRIP", ...)
+  VGFMSR = HvLogHex("VGFMSR", ...)
+  VGG    = HvLog("VGG\n")                          # NPF on protected GPA, NptRemapToDecoy failed → #GP
+  VGGRIP = HvLogHex("VGGRIP", ...)
+  VGGGPA = HvLogHex("VGGGPA", ...)                 #   faulting GPA
+  VGH    = HvLog("VGH\n")                          # NPF on out-of-range GPA (above MaxPhysicalAddress, likely MMIO) → #GP
+  VGHRIP = HvLogHex("VGHRIP", ...)
+  VGHGPA = HvLogHex("VGHGPA", ...)
+
+## Cycle 15 — LAPIC disarmed-branch NPF diagnostic
+  M0F = HvLogHex("M0F first disarmed-LAPIC NPF per LP", ...)
+                                                   # (CpuNumber<<56) | FaultGpa low 16 bits.
+                                                   # Fires the first time an NPF lands inside gLapicGpa with gLapicInterceptArmed==0.
+                                                   # M0F per LP + PMC_CMD_GET_LAPIC_DISARMED_NPF_COUNT (0x38) > 0  → PTE not actually restored on disarm, or armed-but-non-ICR path firing.
+                                                   # M0F absent across drain + counter==0                          → NPFs aren't landing on gLapicGpa at all (Windows AGESA auto-EOI / LAPIC remap).
+
+## Cycle 13.1 — APIC mode + intercept sentinels (one-shot per LP)
+  M0A = HvLogHex("M0A MSR 0x1B IA32_APIC_BASE", ...)
+                                                   # (CpuNumber<<56) | APIC_BASE
+                                                   # bit 10 = x2APIC enabled, bit 11 = APIC global enable
+                                                   # Zero M0A across drain ring = HV first-VMEXIT logger never fired (HV wedge)
+  M0E = HvLogHex("M0E first WRMSR(0x80B) x2APIC EOI intercept", ...)
+                                                   # CpuNumber — proves EOI intercept fires; zero = Win11 in xAPIC mode (EOI via MMIO)
+  M0D = HvLogHex("M0D first WRMSR(0x6E0) IA32_TSC_DEADLINE intercept", ...)
+                                                   # (CpuNumber<<56) | first deadline value; zero = guest doesn't use TSC_DEADLINE mode
+
+## Cycle 13 — MSR-intercept timer rearm (strategy E + EOI)
+  M1L = HvLogHex("M1L TSC_DEADLINE late-fire gap (TSC ticks)", ...)
+                                                   # WRMSR(0x6E0) gap > 0x8000000 TSC (~40ms) since previous write
+                                                   # Indicates guest scheduler parked or HV stopped processing — heartbeat starvation suspect
+  M2E = HvLogHex("M2E x2APIC EOI count", ...)
+                                                   # Cumulative WRMSR(0x80B) count, sampled every 64k writes
+                                                   # Steady-state Win11: ~1000 EOIs/s/CPU; M2E ticks every ~64s of session time
+                                                   # Each EOI = a DrawHookRearm() at VmexitHandler prologue
+
+## Covert channel lifecycle (one-shot transitions; every batch is silent in steady state)
+  VC0 = HvLogHex("VC0 covert channel armed GPA", ...)    # gCovertTriggerGpa transitioned 0 → trigger page GPA
+  VC1 = HvLogHex("VC1 covert channel torn down GPA", ...) # CovertChannelTeardown cleared a previously-armed trigger
+  VC2 = HvLogHex("VC2 covert channel mailbox GPA", ...)   # gCovertMailboxGpa — paired with VC0 at NPT_CHANNEL_INIT
+
+## VMEXIT heartbeat (unconditional — proves VMRUN is returning at all)
+  VB0 = HvLogHex("VB0 first VMEXIT on CPU", ...)   # CpuNumber of CPU's first VMEXIT (once per CPU). Absence = VMRUN wedge.
+  VB1 = HvLogHex("VB1 global VMEXIT count", ...)   # cumulative VMEXIT count, logged every 1024 exits
+
+## HV-side draw hook (PMC_CMD_HOOK_INSTALL_DRAW 0x1B — installer fires once per HV boot)
+  DR0 = HvLog   ("DR0 draw hook fired")                        # any-RIP NPF on hook page; FrameCount++
+  DR1 = HvLogHex("DR1 draw hook install ok va", ...)           # HookVa & 0xFFFFFFFF — install acked
+  DR2 = HvLogHex("DR2 draw hook double install", ...)          # gDrawHookInstalled cap reached
+  DR3 = HvLogHex("DR3 draw hook scratch GVA", ...)             # ScratchBufferGva passed by installer
+  DR4 = HvLogHex("DR4 draw hook scratch GPA list ok first|count", ...) # (first_gpa & ~0xFFF) | (page_count & 0xFFF)
+  DR5 = HvLogHex("DR5 draw hook scratch bad GVA", ...)         # zero or unaligned ScratchGva (or zero HookVa)
+  DR6 = HvLogHex("DR6 draw hook scratch translate fail VA", ...) # first GVA in the 16-page walk that TranslateGuestVirtual rejected
+  DR7 = HvLogHex("DR7 draw hook sentinel mismatch", ...)         # observed 8 bytes at HvBuf[0] when expecting 0x5045584550455845 ("PEXEPEXE")
+  DR8 = HvLogHex("DR8 draw hook scratch read fail GPA", ...)     # first GPA where ReadGuestPhysical 4 KB into HV-private buffer failed
+  DR9 = HvLogHex("DR9 draw hook exec trap armed", ...)           # Phase 2: NPT_NX set on the 4 KB page containing HookSiteVa (GPA-aligned)
+  DRA = HvLogHex("DRA draw hook arm: TargetCr3 unset", ...)      # Phase 2 arm: Vcpu->TargetCr3 == 0 — installer must SET_CR3 to Apex first
+  DRB = HvLogHex("DRB draw hook arm: VA xlate fail", ...)        # Phase 2 arm: TranslateGuestVirtual(TargetCr3, HookVa) failed
+  DRC = HvLogHex("DRC draw hook arm: NptGetPte NULL", ...)       # Phase 2 arm: NptGetPte returned NULL for hook page
+  DRD = HvLogHex("DRD draw hook arm: split fail", ...)           # Phase 2 arm: NptSplitLargePageRuntime returned NTSTATUS != 0
+  DRE = HvLogHex("DRE draw hook arm: PTE still 2MB", ...)        # Phase 2 arm: post-split PTE unexpectedly still has NPT_LARGE_PAGE
+  DRF = HvLogHex("DRF draw hook rearm fired GPA", ...)            # Phase 2 rearm: heartbeat re-set NPT_NX on hook page; cadence ~228 ms (uncapped — heartbeat rate is the natural limit)
+  DRG = HvLogHex("DRG render-gate fn prologue", ...)              # one-shot at HOOK_INSTALL_DRAW: first 8B at ImageBase + APEX_OFF_RENDER_GATE_FN; compared against APEX_RENDER_GATE_FN_PROLOGUE_LE64 — install ABORTS on mismatch (see DRX)
+  DRR = HvLogHex("DRR render-gate prologue read fail VA", ...)    # 2026-05-13: HOOK_INSTALL_DRAW: ReadGuestVirtual on render-gate VA failed before the prologue check could run; install aborted with BAD_ADDR
+  DRX = HvLogHex("DRX render-gate prologue mismatch — expected", ...) # 2026-05-13: HOOK_INSTALL_DRAW: DRG bytes != APEX_RENDER_GATE_FN_PROLOGUE_LE64 (logged value). Canon has drifted; re-pin APEX_OFF_RENDER_GATE_FN before reinstalling.
+  DRH = HvLogHex("DRH draw hook NPF count this window", ...)      # cumulative NPFs on hook page since last DRH/DRF; sum across capture = true exec count (not heartbeat-bounded)
+  DPL = HvLogHex("DPL draw hook payload tick fired", ...)         # cycle 9j: now (Fired & 0x7)==1 so a typical capture shows actual cadence (was 0x3F — masked all signal at 8 NPF/capture)
+  DPC = HvLogHex("DPC payload Cr3/ImageBase==0 bail", ...)        # cycle 9j: low bits — 1=Cr3==0, 2=ImageBase==0, 3=both. Diagnoses the Fired==1 first-tick race where capture not yet broadcast to this VCPU
+  DV0 = HvLogHex("DV0 entity diff-probe snapshot", ...)           # cycle 9j: (cursor<<56) | (dword_idx<<48) | entity[0x250+dword_idx*4]; every 8th tick (was 256), 16 dwords (0x250..0x28C) of first cached entity — diff snapshots before/after a highlight event reveal the render-gate cluster
+  EL0 = HvLogHex("EL0 first local player ptr captured", LocalPtr) # one-shot per HV boot; cycle 9m local-snapshot path lit up
+  LPR = HvLogHex("LPR ReadLocalPlayer slot read FAIL", St)         # ReadGuestVirtual on ImageBase+APEX_OFF_LOCAL_PLAYER errored — bad CR3 or unmapped page
+  LPV = HvLogHex("LPV LocalPlayer slot raw value", LocalPtr)       # rate-limited diag — first 16 ticks + every 0x400 — exposes the slot content for offset re-pin
+  LPB = HvLogHex("LPB LocalPlayer slot VA we read from", VA)       # paired with LPV — guest VA = ImageBase + APEX_OFF_LOCAL_PLAYER
+  EW0 = HvLogHex("EW0 first weapon name (8B packed)", Pack)       # one-shot per HV boot; cycle 9m active-weapon resolved (low 8B of "mp_weapon_*" string)
+  EA0 = HvLogHex("EA0 first view-angle write", best_ent)          # one-shot per HV boot; cycle 9m aim path successfully wrote view angles
+  EA1 = HvLogHex("EA1 first aim engagement (target ent)", best_ent & 0xFF...) # one-shot per HV boot; cycle 9m DoAim picked a target while ADS held
+  AT0 = HvLogHex("AT0 PMC_CMD_SET_AIM_PARAMS received", A)       # packed u64 echoed back; use to verify installer round-trip
+  ET0 = HvLogHex("ET0 first auto-fire kbutton write", best_ent) # one-shot per HV boot; first time DoTrigger wrote 5 to IN_ATTACK
+  ET1 = HvLogHex("ET1 first auto-fire armed cycle", best_ent)   # one-shot per HV boot; first time crosshair was on-target (may precede ET0 if thresh not met)
+  ET2 = HvLogHex("ET2 auto-fire count", FireCount)               # every 0x40 fires; use to gauge cadence drift
+  DVN = HvLogHex("DVN NPF-witness exec GPA", ...)                 # first 64 exec-NPFs anywhere — is guest fetching protected pages at all?
+  DVH = HvLogHex("DVH NPF-witness hook-page RIP", ...)            # first 16 exec-NPFs that match gDrawHookGpa — RIP at fault (vs DR0 which needs RIP==EntryVa)
+
+## Wrapper-A introspection probe (cycle 11e, hv-side-draw-plan §G-addendum)
+# One-shot per HV boot at HookDrawHandleInstall (no NPF dependency). Chain
+# per §G-addendum option 2 (per-frame ctx-array, HV-friendly flat statics):
+#   frame_idx = *(u32)(ImageBase + 0x1F6AE4C)
+#   ctx       = *(u64)(ImageBase + 0x1F6AE78 + frame_idx*8)
+#   wrapper_a = *(u64)(ctx + 0x5EF0)
+#   vtable    = *(u64)(wrapper_a + 0x00)
+# Emits EI0..EI3 (chain progress) then EA0..EA9 + ES0..ES7. Missing EI3 =
+# array load broke; missing EA2 = ctx+0x5EF0 load broke; missing ES* =
+# vtable slot reads broke.
+#
+# Cycle 11c first tried RipRva==0x54E9C7 NPF gate — heartbeat-bounded,
+# fires at most 1 RIP/sec, almost never the exact call insn. Cycle 11d
+# tried direct-read via static at RVA 0x3D4C578 — that's wrapper-B's
+# renderctx (different object, returns the stub `mov al,1; ret` vtable
+# at RVA 0x4B55940). 11e uses the right anchor.
+#
+# Supersedes the cycle-10d/11b DW0..DW9 + DT0..DT7 probe at fn 0x26B6A0
+# rsi (which captured wrapper B, not the live D3D12 path).
+  EI0 = HvLogHex("EI0 anchor RIP", ...)                           # = ImageBase + 0x54E9C7 (canonical wrapper-A site)
+  EI1 = HvLogHex("EI1 frame_idx (low 32b)", ...)                  # *(u32)(ImageBase + 0x1F6AE4C)
+  EI2 = HvLogHex("EI2 ring base ptr", ...)                        # *(u64)(ImageBase + 0x1F6AE78) — heap ctx*[] base
+  EI3 = HvLogHex("EI3 ring size (low 32b)", ...)                  # *(u32)(ImageBase + 0x1F6AE30) — mod divisor
+  EI4 = HvLogHex("EI4 ctx VA", ...)                               # *(u64)(RingBase + frame_idx*8) — wrapper-A's owning ctx
+  EA0 = HvLogHex("EA0 NPF-path probe RIP at capture (Vmcb->Save.Rip)", ...)
+  EA1 = HvLogHex("EA1 wrapper-A this", ...)
+  EA2 = HvLogHex("EA2 wrapper-A[+0x00] vtable", ...)
+  EA3 = HvLogHex("EA3 wrapper-A[+0x08]", ...)
+  EA4 = HvLogHex("EA4 wrapper-A[+0x10]", ...)
+  EA5 = HvLogHex("EA5 wrapper-A[+0x18]", ...)
+  EA6 = HvLogHex("EA6 wrapper-A[+0x20]", ...)
+  EA7 = HvLogHex("EA7 wrapper-A[+0x28]", ...)
+  EA8 = HvLogHex("EA8 wrapper-A[+0x30]", ...)
+  EA9 = HvLogHex("EA9 wrapper-A[+0x38]", ...)
+  ES0 = HvLogHex("ES0 vtable[+0x00] QueryInterface", ...)
+  ES1 = HvLogHex("ES1 vtable[+0x08] AddRef", ...)
+  ES2 = HvLogHex("ES2 vtable[+0x10] Release (IUnknown sanity)", ...)
+  ES3 = HvLogHex("ES3 vtable[+0x40] GetDevice", ...)
+  ES4 = HvLogHex("ES4 vtable[+0x48] Close", ...)
+  ES5 = HvLogHex("ES5 vtable[+0xA8] RSSetViewports (this call site)", ...)
+  ES6 = HvLogHex("ES6 vtable[+0xD0] ResourceBarrier (Phase-3 hook target)", ...)
+  ES7 = HvLogHex("ES7 vtable[+0xE8] SetComputeRootSignature", ...)
+
+## Phase-4 precursor — W2S projection probe (cycle 11f)
+# Each NPF, ProbeGlowW2S projects every alive-enemy ENT_SNAPSHOT through
+# gLocal.ViewMatrix (row-major, world*view*proj combined) to NDC. Logs
+# W2P = (ndc.y_q15 << 48) | (ndc.x_q15 << 32) | ent_lo32 — q15 means int16
+# Q1.15 fixed-point (-32768..+32767 = -1.0..+0.99996). Bounded by
+# W2P_LOG_MAX=128 across all ticks; no NPT changes, no game-state writes.
+# Pass criterion: distinct ent_lo32 values, ndc.x/ndc.y change as camera
+# turns, |ndc| stays within ~[-1.5, +1.5] for visible enemies.
+  W2P = HvLogHex("W2P (ndc.y_q15<<48 | ndc.x_q15<<32 | ent_lo32)", ...)
+  VPT = HvLogHex("VPT ViewPtr (one-shot)", ...)                       # CClientView VA right before reading the matrix
+  VMM = HvLogHex("VMM ViewMatrix float (one-shot 16-burst — (idx<<32)|float_bits)", ...)  # idx 0..15, low 32 = IEEE float bits
+
+## Phase-3a v2 ring sampler — wrapper_a instance pointer (cycle 11e)
+# Parallel to the 64-entry EA2 vtable burst: each per-NPF sample also
+# records the wrapper_a (cmdlist `this`) VA into gWrapperRingInst[64].
+# On the 64th sample the sampler flushes EA2[0..63] then EAW[0..63].
+# Pass for Phase-3b: 64 EA2 entries identical (single d3d12 vtable VA)
+# AND 64 EAW entries that are all valid heap pointers (≥0x10000 and
+# < user-space top). Multiple distinct EAW values across the burst is
+# expected — ctx-ring writer advances each frame, so 3b emit must
+# treat the per-frame ctx as the source of truth, not a captured const.
+  EAW = HvLogHex("EAW wrapper_a instance VA (this ptr)", ...)        # 64-entry burst alongside EA2 burst — Phase-3a v2 cross-check
+
+## LSL — LocalPlayer-Slot Locator (RETIRED 2026-05-12)
+# Pin closed: APEX_OFF_LOCAL_PLAYER = 0x0268FA08 (donor value).
+# Confirmed via in-match .data dump (DUMPED_2026-05-12_15-43-15) — slot
+# held 0x000002F3CA137FB0 (valid heap ptr); Steam ±0xC00 candidates
+# were null or pointed into .rdata (wrong shape). LSL probe removed
+# from HypeHookDraw.c. Marker kept here for historical log decodes only.
+
+## HID snapshot probe — HID_SNAPSHOT_MODE (temp; revert after capture)
+# Per-tick read of entity+0x298 for player entities. Skips our own +0x298
+# write so we observe Apex's engine-native bucket selection per player
+# state. Logs only on (HID OR state) change vs prior sample; cap 128 events.
+# Packed UINT64:
+#   [63:32] = Ent VA low32 (entity identifier across log)
+#   [31:24] = Health (clamped 0..255)
+#   [23:16] = Shield (clamped 0..255)
+#   [15:8]  = StateBits: bit0=Alive bit1=Downed bit2=Decoy
+#                       bit3=SameTeamAsLocal [7:4]=ArmorType
+#   [7:0]   = HID at entity+0x298 (engine value, no HV overwrite)
+  HSE = HvLogHex("HSE player HID change", PACKED)
+
+## PMC_CMD_HV_LOG_READ 0x1E — live drain (cycle 10d-r2)
+# Arg1 = byte offset (0..sizeof(HV_DEBUG_LOG)-8). Result = 8 bytes at that
+# offset. Header layout: [0]=Magic, [8]=WritePos, [16..]=Buffer ring.
+# Client drains by reading WritePos first, then iterating Buffer in 80-cmd
+# batches. No HV-side markers — drain is purely covert read.
+
+  VRP = HvLogHex("VRP rip histogram sample", ...)                 # guest RIP sampled every 256 VMEXITs per CPU, cap 2048 — offline decoder finds per-frame anchors
+
+## GP0 — runtime glow params applied (PMC_CMD_SET_GLOW_PARAMS, cycle 11g)
+# Packed Arg1: [7:0]=Slot [15:8]=Mask [23:16]=FilterMode [31:24]=Enabled
+#              [39:32]=VisType [47:40]=GlowFix [55:48]=WriteVisType [63:56]=WriteGlowFix
+# Logged once per --reconfig fire so we can audit live tuning over a drain.
+  GP0 = HvLogHex("GP0 glow params applied", Packed)
+
+## XC0/XC1/XC2 — PMC_CMD_VIRT_CALL pipeline (cycle 11h)
+# Guest-context invocation of native r5apex setters (e.g. SetHighlightId
+# @ live RVA 0x818500, was 0x817600 pre 2026-05-13 +0xF00 re-pin).
+  XC0 = HvLogHex("XC0 VIRT_CALL_INIT trampoline registered", TramGpaAligned)
+  XC1 = HvLogHex("XC1 VIRT_CALL fired — RIP redirected", FnVa)
+  XC2 = HvLogHex("XC2 VIRT_CALL trampoline-return — target's RAX", TargetRax)
+  XC3 = HvLogHex("XC3 VIRT_CALL: NPF on trampoline GPA but VirtCallActive=0 — orphan return", FaultGpa)
+
+## MN0/MN4/MN5/MN6 — HV-resident config controller (HypeMenu.c)
+# No rendering surface — kbutton +0x8 reads drive a state machine over
+# gGlowParams / gAimTriggerParams. IN_USE triple-tap toggles open;
+# DUCK/JUMP nav rows; SPEED/FORWARD ± value. HypeAimTriggerTick early-outs
+# on gMenu.Open so navigation keys don't fire weapon.
+  MN0 = HvLogHex("MN0 PMC_CMD_SET_MENU_ENABLE received", Enable)   # arg=1 arms menu, arg=0 disarms (--menu-disable)
+  MN4 = HvLogHex("MN4 menu kbutton edge", (KeyId<<8)|state)        # KeyId: 0=USE 1=DUCK 2=JUMP 3=SPEED 4=FORWARD
+  MN5 = HvLogHex("MN5 menu open toggled (IN_USE triple-tap)", Open) # 1=open 0=closed
+  MN6 = HvLogHex("MN6 menu item value changed", (Row<<8)|NewVal)    # Row indexes kMenuItems[]; NewVal is new u8

@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# build_deploy_installer.sh — build sca-svc.exe on PC1, sign, push back.
+# Requires PEX/tools/sign/svc-codesign.pfx (regen.sh covers initial gen).
+
+set -euo pipefail
+
+SCA_ROOT=/srv/nfs/shared/Shared/SCA
+INSTALLER_DIR=$SCA_ROOT/installer
+PC1=pc1@10.0.0.1
+TS=$(date +%Y%m%d_%H%M%S)
+
+# Reuse the existing PEX self-signed cert — same trust anchor on PC1.
+SIGN_DIR=/srv/nfs/shared/Shared/PEX/tools/sign
+SIGN_PFX=$SIGN_DIR/svc-codesign.pfx
+SIGN_PASS=pex
+SIGN_CRT=$SIGN_DIR/svc-codesign.crt
+
+c_red()  { printf '\033[31m%s\033[0m\n' "$*"; }
+c_grn()  { printf '\033[32m%s\033[0m\n' "$*"; }
+c_step() { printf '\033[36m== %s ==\033[0m\n' "$*"; }
+die()    { c_red "$*"; exit 1; }
+
+c_step "PC1 reachability"
+ssh -o ConnectTimeout=4 -o BatchMode=yes "$PC1" 'hostname' >/dev/null 2>&1 \
+    || die "pc1 SSH unreachable"
+c_grn "pc1 reachable"
+
+c_step "Sync build_installer_local.bat to PC1"
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+LOCAL_BAT="$SCRIPT_DIR/build_installer_local.bat"
+[[ -f "$LOCAL_BAT" ]] || die "missing $LOCAL_BAT"
+ssh "$PC1" 'cmd /c "if not exist C:\\Tools mkdir C:\\Tools"' 2>/dev/null
+scp -q "$LOCAL_BAT" "${PC1}:C:/Tools/build_installer_local.bat"
+c_grn "synced"
+
+c_step "Tarball installer source"
+TGZ="/tmp/sca_installer_${TS}.tgz"
+tar -C "$INSTALLER_DIR" --exclude=./build -czf "$TGZ" .
+TAR_SIZE=$(stat -c%s "$TGZ")
+c_grn "tarball: ${TAR_SIZE} bytes"
+
+c_step "Push tarball → PC1 C:\\Tmp\\sca_installer.tgz"
+ssh "$PC1" 'cmd /c "if not exist C:\\Tmp mkdir C:\\Tmp"' 2>/dev/null
+scp -q "$TGZ" "${PC1}:C:/Tmp/sca_installer.tgz"
+rm -f "$TGZ"
+c_grn "scp OK"
+
+c_step "Extract on PC1 → C:\\SCA\\installer\\"
+ssh "$PC1" 'powershell -NoProfile -Command "if (Test-Path C:\\SCA\\installer) { Get-ChildItem C:\\SCA\\installer -Exclude build | Remove-Item -Recurse -Force }; if (-not (Test-Path C:\\SCA\\installer)) { New-Item -ItemType Directory -Path C:\\SCA\\installer -Force | Out-Null }"' 2>&1 >/dev/null
+# tar -m sets mtimes to now so MSBuild rebuilds.
+ssh "$PC1" 'cmd /c "cd /d C:\\SCA\\installer && tar -xmzf C:\\Tmp\\sca_installer.tgz"'
+c_grn "extracted"
+
+c_step "Build sca-svc.exe on PC1"
+BUILD_LOG="/tmp/sca_build_${TS}.log"
+ssh "$PC1" 'cmd /c "C:\\Tools\\build_installer_local.bat"' > "$BUILD_LOG" 2>&1 || {
+    c_red "BUILD FAILED — last 30 lines:"
+    tail -30 "$BUILD_LOG"
+    die "Full log: $BUILD_LOG"
+}
+grep -q "BUILD_OK" "$BUILD_LOG" || {
+    c_red "build returned 0 but no BUILD_OK marker. Last 20 lines:"
+    tail -20 "$BUILD_LOG"
+    die "Full log: $BUILD_LOG"
+}
+c_grn "built"
+
+c_step "Pull binary → ${INSTALLER_DIR}/build/Release/"
+mkdir -p "${INSTALLER_DIR}/build/Release"
+scp -q "${PC1}:C:/SCA/installer/build/Release/sca-svc.exe" \
+    "${INSTALLER_DIR}/build/Release/sca-svc.exe"
+
+sign_one() {
+    local exe=$1 disp=$2
+    [[ -f "$SIGN_PFX" ]] || die "missing $SIGN_PFX — run PEX/tools/sign/regen.sh"
+    osslsigncode sign \
+        -pkcs12 "$SIGN_PFX" -pass "$SIGN_PASS" \
+        -h sha256 \
+        -n "$disp" \
+        -in "$exe" \
+        -out "${exe}.signed" >/dev/null 2>&1 \
+        || die "osslsigncode sign failed: $exe"
+    mv "${exe}.signed" "$exe"
+    osslsigncode verify -CAfile "$SIGN_CRT" -in "$exe" >/dev/null 2>&1 \
+        || die "post-sign verify failed: $exe"
+}
+
+c_step "Sign with PEX self-signed cert"
+sign_one "${INSTALLER_DIR}/build/Release/sca-svc.exe"  "Service Host"
+SIZE_INST=$(stat -c%s "${INSTALLER_DIR}/build/Release/sca-svc.exe")
+c_grn "signed: sca-svc=${SIZE_INST}B"
+
+c_step "Push signed binary + helper scripts to PC1"
+ssh "$PC1" 'cmd /c "if not exist C:\\SCA mkdir C:\\SCA"' 2>/dev/null
+scp -q "${INSTALLER_DIR}/build/Release/sca-svc.exe" \
+    "${PC1}:C:/SCA/sca-svc.exe"
+scp -q "$SCRIPT_DIR/get_target_peb.ps1" \
+    "${PC1}:C:/SCA/get_target_peb.ps1"
+scp -q "$SCRIPT_DIR/wait_target_peb.ps1" \
+    "${PC1}:C:/SCA/wait_target_peb.ps1"
+c_grn "pushed → C:\\SCA\\sca-svc.exe + get_target_peb.ps1 + wait_target_peb.ps1"
+
+c_step "Hash verify"
+verify_hash() {
+    local local_path=$1 remote_path=$2
+    local lh rh
+    lh=$(sha256sum "$local_path" | awk '{print toupper($1)}')
+    rh=$(ssh "$PC1" "powershell -NoProfile -Command \"(Get-FileHash '${remote_path}' -Algorithm SHA256).Hash\"" 2>&1 | tr -d '\r\n ')
+    [[ "$lh" == "$rh" ]] || die "hash mismatch on $remote_path: local=$lh remote=$rh"
+}
+verify_hash "${INSTALLER_DIR}/build/Release/sca-svc.exe"  'C:\SCA\sca-svc.exe'
+verify_hash "$SCRIPT_DIR/get_target_peb.ps1"               'C:\SCA\get_target_peb.ps1'
+verify_hash "$SCRIPT_DIR/wait_target_peb.ps1"              'C:\SCA\wait_target_peb.ps1'
+c_grn "hashes match"
+
+c_grn ""
+c_grn "DONE."
+c_grn "  sca-svc.exe  ${SIZE_INST} B   PC1: C:\\SCA\\sca-svc.exe"
+c_grn ""
+c_grn "Run installer on PC1 (post-HV-boot, post-game-launch):"
+c_grn "    C:\\SCA\\sca-svc.exe -v --rva 0xDEADBEEF --scratch 0x0 --pso 0"
