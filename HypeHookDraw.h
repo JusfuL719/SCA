@@ -40,6 +40,7 @@ typedef struct _GLOW_PARAMS_RT {
     UINT8  GlowFix;     // +0x278 value (engine writes -1.0 — race target)
     UINT8  WriteVisType;// 0 = skip the +0x26C write entirely (let engine drive)
     UINT8  WriteGlowFix;// 0 = skip the +0x278 write entirely
+    UINT8  SquadGlow;   // 1 = override engine's HID=28 squad-suppress (route to GlowSlot)
 } GLOW_PARAMS_RT;
 extern volatile GLOW_PARAMS_RT gGlowParams;
 

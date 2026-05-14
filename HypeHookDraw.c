@@ -39,7 +39,8 @@ static UINT8 gDrawHookHvBuf[HOOK_DRAW_BUF_BYTES] __attribute__((aligned(0x1000))
 // values. Typedef + extern are in HypeHookDraw.h so HypeMenu can reference.
 volatile GLOW_PARAMS_RT gGlowParams = {
     .Slot = 78, .Mask = 0x01, .FilterMode = 0, .Enabled = 1,
-    .VisType = 1, .GlowFix = 2, .WriteVisType = 1, .WriteGlowFix = 1
+    .VisType = 1, .GlowFix = 2, .WriteVisType = 1, .WriteGlowFix = 1,
+    .SquadGlow = 0
 };
 
 VOID *HookDrawScratchHvBuf(VOID) {
@@ -632,6 +633,7 @@ static VOID RenderGlow(UINT64 Cr3, UINT64 ImageBase) {
     UINT8 GlowSlot   = gGlowParams.Slot;
     UINT8 GlowFilter = gGlowParams.FilterMode;
     UINT8 GlowOn     = gGlowParams.Enabled;
+    UINT8 SquadOn    = gGlowParams.SquadGlow;
     BOOLEAN PlayerGlowOff = (!GlowOn) || (GlowFilter == 3);
 
     for (UINT32 i = 0; i < HOOK_DRAW_CACHE_SIZE; i++) {
@@ -643,8 +645,9 @@ static VOID RenderGlow(UINT64 Cr3, UINT64 ImageBase) {
             if (!S->IsAlive)   continue;
             if (S->IsDecoy)    continue;
             BOOLEAN SameTeam = (gLocal.Ent != 0 && S->Team == gLocal.Team);
-            // 0=enemy_only 1=all 2=teammates_only
-            if (GlowFilter == 0 && SameTeam) continue;
+            // 0=enemy_only 1=all 2=teammates_only.
+            // SquadOn promotes SameTeam past the enemy_only skip — HID=28 → GlowSlot lever.
+            if (GlowFilter == 0 && SameTeam && !SquadOn) continue;
             if (GlowFilter == 2 && !SameTeam) continue;
             Slot = GlowSlot;
         } else {
@@ -876,9 +879,12 @@ UINT32 HookDrawHandlePeek(PVCPU_DATA Vcpu, COVERT_CMD *Cmd) {
 //   [47:40] GlowFix       [39:32] VisType
 //   [31:24] Enabled       [23:16] FilterMode
 //   [15:8]  Mask          [7:0]   Slot
+// Arg2 layout:
+//   [7:0]   SquadGlow     (1 = HID=28 → GlowSlot squad-glow lever)
 UINT32 HookDrawHandleSetGlowParams(PVCPU_DATA Vcpu, COVERT_CMD *Cmd) {
     (VOID)Vcpu;
     UINT64 A = Cmd->Arg1;
+    UINT64 B = Cmd->Arg2;
     gGlowParams.Slot         = (UINT8)( A        & 0xFF);
     gGlowParams.Mask         = (UINT8)((A >>  8) & 0xFF);
     gGlowParams.FilterMode   = (UINT8)((A >> 16) & 0xFF);
@@ -887,7 +893,9 @@ UINT32 HookDrawHandleSetGlowParams(PVCPU_DATA Vcpu, COVERT_CMD *Cmd) {
     gGlowParams.GlowFix      = (UINT8)((A >> 40) & 0xFF);
     gGlowParams.WriteVisType = (UINT8)((A >> 48) & 0xFF);
     gGlowParams.WriteGlowFix = (UINT8)((A >> 56) & 0xFF);
+    gGlowParams.SquadGlow    = (UINT8)( B        & 0xFF);
     HvLogHex("GP0", A);
+    HvLogHex("GP1", B);
     Cmd->Result = A;
     return COVERT_STATUS_OK;
 }

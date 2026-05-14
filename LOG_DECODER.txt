@@ -467,11 +467,13 @@
 
   VRP = HvLogHex("VRP rip histogram sample", ...)                 # guest RIP sampled every 256 VMEXITs per CPU, cap 2048 — offline decoder finds per-frame anchors
 
-## GP0 — runtime glow params applied (PMC_CMD_SET_GLOW_PARAMS, cycle 11g)
+## GP0/GP1 — runtime glow params applied (PMC_CMD_SET_GLOW_PARAMS, cycle 11g)
 # Packed Arg1: [7:0]=Slot [15:8]=Mask [23:16]=FilterMode [31:24]=Enabled
 #              [39:32]=VisType [47:40]=GlowFix [55:48]=WriteVisType [63:56]=WriteGlowFix
+# Packed Arg2: [7:0]=SquadGlow (1=HID=28 → GlowSlot squad-glow lever)
 # Logged once per --reconfig fire so we can audit live tuning over a drain.
-  GP0 = HvLogHex("GP0 glow params applied", Packed)
+  GP0 = HvLogHex("GP0 glow params applied (Arg1)", Packed)
+  GP1 = HvLogHex("GP1 glow params applied (Arg2 — SquadGlow in [7:0])", Packed)
 
 ## XC0/XC1/XC2 — PMC_CMD_VIRT_CALL pipeline (cycle 11h)
 # Guest-context invocation of native r5apex setters (e.g. SetHighlightId

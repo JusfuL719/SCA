@@ -28,6 +28,7 @@ static const MENU_ITEM kMenuItems[] = {
     { "GlowFix",        &gGlowParams.GlowFix,                       MENU_ITEM_SLIDER, 0, 0xFF, 1 },
     { "WriteVisType",   &gGlowParams.WriteVisType,                  MENU_ITEM_BOOL,   0, 1, 1 },
     { "WriteGlowFix",   &gGlowParams.WriteGlowFix,                  MENU_ITEM_BOOL,   0, 1, 1 },
+    { "SquadGlow",      &gGlowParams.SquadGlow,                     MENU_ITEM_BOOL,   0, 1, 1 },
     { "AimEnabled",     (volatile UINT8 *)&gAimTriggerParams.AimEnabled,       MENU_ITEM_BOOL,   0, 1, 1 },
     { "AimFovQ4_4",     (volatile UINT8 *)&gAimTriggerParams.AimFovQ4_4,       MENU_ITEM_SLIDER, 0, 0xFF, 1 },
     { "TrigEnabled",    (volatile UINT8 *)&gAimTriggerParams.TriggerEnabled,   MENU_ITEM_BOOL,   0, 1, 1 },
