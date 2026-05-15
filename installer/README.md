@@ -24,8 +24,8 @@ installer/
 | Mode | argv | ≤1s? | What it does |
 |---|---|---|---|
 | `--live-memdump <dir>` | `-v [--peb 0x…]` | minutes | HANDSHAKE→SET_EPROCESS→NPT→Phase-4 CR3→SET_CR3 → stream **`.text` / `.rdata` / `.data`** into `dir\r5apex_live_*.bin` via `BulkVirtRead8` only (**never** runs `PMC_CMD_HOOK_INSTALL_DRAW`). Section RVAs mirror `UNICORN_DUMPER/redump.sh`; adjust `kSec*` constants if a patch reshapes PE. Use this when hook RVA drift would CTD Apex. |
-| install (default) | `--rva 0x… [--module-base …] [--target-cr3 …] [--peb …]` + optional `--glow-*` | yes | HANDSHAKE → SET_EPROCESS → NPT_CHANNEL_INIT → CR3 recovery (skip with `--no-recover`) → batched **SET_CR3 + HOOK_INSTALL_DRAW + HOOK_DRAW_PEEK + optional SET_GLOW_PARAMS in one mailbox round trip** → exit |
-| `--reconfig` | `--glow-*` knobs (slot/mask/filter/enabled/vis-type/glow-fix/write-vistype/write-glowfix/squad-glow) | yes | Push gGlowParams on already-armed HV (no install). |
+| install (default) | `--rva 0x… [--module-base …] [--target-cr3 …] [--peb …]` + optional `--glow-*` / `--vgui-*` | yes | HANDSHAKE → SET_EPROCESS → NPT_CHANNEL_INIT → CR3 recovery (skip with `--no-recover`) → batched **SET_CR3 + HOOK_INSTALL_DRAW + HOOK_DRAW_PEEK + optional SET_GLOW_PARAMS + optional SET_VGUI_PARAMS in one mailbox round trip** → exit |
+| `--reconfig` | `--glow-*` and/or `--vgui-*` knobs | yes | Push runtime knobs on already-armed HV (no install): gGlowParams and optional VGUI probe/backend params. |
 | `--drain` | `[--drain-out path]` | stays up ~seconds | Pull 4 MB HV ring via `PMC_CMD_HV_LOG_READ`. Writes `hypedbg-live-<tsc>.bin`. HV keeps running. |
 | `--diag-m0f` | — | yes | Read `PMC_CMD_GET_LAPIC_DISARMED_NPF_COUNT` (cycle 15 disarmed-LAPIC-NPF counter) and print. |
 | `--drift-check` | `--module-base 0x…` | yes | Sanity-check the canonical `UNICORN_DUMPER/OFFSETS.md` pins (BucketTable_Ptr, BucketCount, SetHighlightId prologue) still resolve against the live Apex binary. One scatter VIRT_READ8 batch. Replaces the retired exhaustive RE probes. |
@@ -49,7 +49,8 @@ installer/
 5. **Install-tail batch** — one mailbox round trip packs SET_CR3 (`0x02`)
    + HOOK_INSTALL_DRAW (`0x1B`, Arg1=`module_base+rva`, Arg2=scratch GVA) +
    HOOK_DRAW_PEEK (`0x1C`, Arg1=0 for cloak-copy sentinel verify) +
-   optional SET_GLOW_PARAMS (`0x1D`). The HV mailbox loop dispatches in
+   optional SET_GLOW_PARAMS (`0x1D`) + optional SET_VGUI_PARAMS (`0x23`).
+   The HV mailbox loop dispatches in
    order; `SET_CR3` calls `InvalidateSoftTlb` inside its own handler so
    `HOOK_INSTALL_DRAW` sees the refreshed TargetCr3 within the same batch.
 6. Exit.
@@ -64,3 +65,18 @@ adds polling time, but Phase 4 (PEB-hinted) typically resolves in <50 ms.
 `--write-vistype`, `--write-glowfix`. Any one of these flags flips
 `glow_set=true` and pushes `SET_GLOW_PARAMS` at end of install (or as
 the sole action under `--reconfig`).
+
+## VGUI knobs
+
+`--vgui-enable` (probe_only_arm default), `--vgui-disable`,
+`--vgui-probe-only`, `--vgui-dry-arm`, `--vgui-rollback`,
+`--vgui-fail-closed`, `--vgui-stable-need`, `--vgui-max-faults`,
+`--vgui-global-rva`, `--vgui-slot-draw`, `--vgui-slot-pos`,
+`--vgui-slot-color`, `--vgui-slot-font`, `--vgui-text-x`,
+`--vgui-text-y`, `--vgui-text-rgba`.
+
+Any `--vgui-*` flag flips `vgui_set=true` and emits `SET_VGUI_PARAMS`
+(`0x23`) either at install-tail or as part of `--reconfig`.
+With `--vgui-enable` alone, defaults arm read-only probe mode:
+`Enabled=1 ProbeOnly=1 Rollback=0 FailClosed=1 StableNeed=8 MaxFaults=4`
+using canon `GlobalRva=0x025517E0` and slots `draw/pos/color=1/2/7`.

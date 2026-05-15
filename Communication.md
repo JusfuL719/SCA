@@ -154,9 +154,36 @@ struct COVERT_MAILBOX {
 | `0x18` | TLB_PROBE | Research-only NPT iTLB-asymmetry probe (Zen 3). See § TLB_PROBE. |
 | `0x36` | CR3_INTERCEPT | Arm chunked CR3 capture (`Cr3PassiveSample`) |
 | `0x37` | GET_INTERCEPT_PEB | Poll chunked CR3 scanner; returns captured PEB |
+| `0x23` | SET_VGUI_PARAMS | Configure VGUI probe/gate/backend runtime knobs |
 | `0x2B` | RENDER_SET_SINK | Atomic render-sink override transition. `Arg1`=NewRva (0 → revert to `APEX_FPS_FMT_RVA`), `Arg2`=NewLen (0 → revert to `APEX_FPS_FMT_LEN`, capped at `RENDER_SINK_MAX_LEN`=256), `Arg3`=IndirectOff (0 → direct write at `ImageBase+RVA`; non-zero → HV reads a 64-bit pointer cell at `ImageBase+RVA+Arg3` and uses the result as the sink VA — for ConVar `m_pszString` slots at +0x40 of the Source ConVar struct). Synchronously restores the prior sink + clears queue + invalidates backup before flipping override. Returns `COVERT_STATUS_OK` on success, `BAD_ADDR` if Cr3/ImageBase unset. |
 
 Reserved/unused: `0x01, 0x03–0x06, 0x09, 0x0B–0x10, 0x11–0x13, 0x14–0x16, 0x38` → `BAD_CMD`.
+
+### SET_VGUI_PARAMS (0x23)
+
+Runtime control for foreign-VGUI RE flow (defaults fail-closed).
+
+- `Arg1`:
+  - `[7:0]` `Enabled`
+  - `[15:8]` `ProbeOnly`
+  - `[23:16]` `DryRunArm`
+  - `[31:24]` `Rollback`
+  - `[39:32]` `FailClosed`
+  - `[47:40]` `StableNeed`
+  - `[55:48]` `MaxFaults`
+- `Arg2`:
+  - `[31:0]` `CandidateGlobalRva`
+  - `[39:32]` `SlotDrawText`
+  - `[47:40]` `SlotSetTextPos`
+  - `[55:48]` `SlotSetTextColor`
+  - `[63:56]` `SlotSetFont`
+- `Arg3`:
+  - `[15:0]` `TextX`
+  - `[31:16]` `TextY`
+  - `[63:32]` `TextRgba`
+
+Result packs current mode bits and counters:
+`Enabled | ProbeOnly<<8 | GatePassed<<16 | Rollback<<24 | FaultCount<<32 | StableCount<<40`.
 
 ### TLB_PROBE (0x18) — Research-only NPT iTLB-asymmetry probe
 

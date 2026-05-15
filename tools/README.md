@@ -12,6 +12,8 @@ Orchestration layer for the SCA HV + installer + dump pipeline. Every script her
 ./tools/run_installer.sh        # run SCAhost.exe on PC1 (post-HV-boot, post-game-launch)
 ./tools/drain.sh                # live drain (HV stays up)
 ./tools/drain.sh --reboot       # post-BSOD/wedge drain only
+ssh pc1 "cmd /c \"C:\\SCA\\SCAhost.exe --reconfig --vgui-enable\""   # canonical VGUI probe arm
+/home/user/.venvs/re/bin/python3 tools/probe_vgui_surface.py
 ```
 
 ## Script reference
@@ -29,6 +31,7 @@ Orchestration layer for the SCA HV + installer + dump pipeline. Every script her
 | [get_target_peb.ps1](get_target_peb.ps1) | PowerShell: get r5apex_dx12 PEB VA. | PC1 | n/a |
 | [wait_target_peb.ps1](wait_target_peb.ps1) | PowerShell: poll until r5apex_dx12 is up + stable, then return PEB VA. | PC1 | n/a |
 | [check_log_decoder.py](check_log_decoder.py) | Drift gate. Walks every `HvLog(...)` / `HvLogHex(...)` call site in `SCA/*.c`, flags codes missing from `LOG_DECODER.txt` and orphan entries. Wired into `build_sca_hv.sh` before EDK2 build. | share | n/a |
+| [probe_vgui_surface.py](probe_vgui_surface.py) | Static Phase 1/3 analyzer over `r5apex_live_{text,rdata,data}.bin`. Emits ranked VGUI candidates, vtable slot map, dry-run static gate verdict, and probe trace notes under `SCA/output/canon/`. | share | `output/canon/vgui_*_<date>.*` |
 | [startup.nsh](startup.nsh) | UEFI Shell script on HYPEBOOT USB — drain-flag check, then loads PlatformInit.efi, then chains bootmgfw.efi. | HYPEBOOT USB | n/a |
 
 ## `SCAhost.exe` modes (what `run_installer.sh` / `live_memdump.sh` / `drain.sh` actually invoke — replaces the old `sca-svc.exe` name)
@@ -40,7 +43,7 @@ Authoritative table: see [../installer/README.md](../installer/README.md). One s
 | install (default) | `--rva 0x…` | no |
 | `--live-memdump <dir>` | explicit | minutes |
 | `--drain` | explicit | seconds |
-| `--reconfig` | `--glow-*` flags | no |
+| `--reconfig` | `--glow-*` and/or `--vgui-*` flags | no |
 | `--drift-check` | explicit | no |
 | `--dump-teams` | explicit | no |
 | `--peek-ent <VA>` | explicit | no |

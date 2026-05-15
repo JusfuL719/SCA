@@ -106,6 +106,34 @@ volatile GLOW_PARAMS_RT gGlowParams = {
     .SquadGlow = 0, .SquadSlot = (UINT8)APEX_SLOT_SQUAD
 };
 
+volatile VGUI_DRAW_RT gVguiDrawParams = {
+    .Enabled = 0, .ProbeOnly = 1, .DryRunArm = 0, .Rollback = 1,
+    .FailClosed = 1, .StableNeed = 8, .MaxFaults = 4,
+    .CandidateGlobalRva = 0, .SlotDrawText = 0, .SlotSetTextPos = 0,
+    .SlotSetTextColor = 0, .SlotSetFont = 0,
+    .TextX = 960, .TextY = 120, .TextRgba = 0xFFFFFFFFU,
+    .GatePassed = 0, .DryRunDone = 0, .BackendActive = 0,
+    .FaultCount = 0, .StableCount = 0,
+    .LastIface = 0, .LastVtable = 0, .LastDrawFn = 0
+};
+
+static inline BOOLEAN IsUserVaCanonical(UINT64 Va) {
+    return (Va >= 0x10000ULL && Va < 0x0000800000000000ULL);
+}
+
+static VOID VguiRecordFault(UINT64 Code) {
+    volatile VGUI_DRAW_RT *P = &gVguiDrawParams;
+    if (P->FaultCount < 0xFF) P->FaultCount++;
+    HvLogHex("VGQ", Code);
+    UINT8 Limit = (P->MaxFaults == 0) ? 1 : P->MaxFaults;
+    if (P->FailClosed && !P->Rollback && P->FaultCount >= Limit) {
+        P->Rollback = 1;
+        P->Enabled = 0;
+        P->BackendActive = 0;
+        HvLogHex("VG3", ((UINT64)P->FaultCount << 32) | (Code & 0xFFFFFFFFULL));
+    }
+}
+
 VOID *HookDrawScratchHvBuf(VOID) {
     return (gDrawHook.CopiedBytes == HOOK_DRAW_BUF_BYTES)
                 ? (VOID *)gDrawHookHvBuf
@@ -380,6 +408,8 @@ static VOID MirrorSnapshots(UINT64 Tick) {
     if (gDrawHook.CopiedBytes != HOOK_DRAW_BUF_BYTES) return;
     CopyMem(gDrawHookHvBuf + DRAWBUF_OFF_LOCAL,     &gLocal, sizeof(LOCAL_SNAPSHOT));
     CopyMem(gDrawHookHvBuf + DRAWBUF_OFF_AIM,       &gAim,   sizeof(AIM_STATE));
+    CopyMem(gDrawHookHvBuf + DRAWBUF_OFF_VGUI_STATE,
+            (const VOID *)&gVguiDrawParams, sizeof(VGUI_DRAW_RT));
     CopyMem(gDrawHookHvBuf + DRAWBUF_OFF_HEARTBEAT, &Tick,   sizeof(UINT64));
     UINT32 Mirrored = 0;
     for (UINT32 i = 0; i < HOOK_DRAW_CACHE_SIZE
@@ -817,6 +847,107 @@ static VOID ProbeGlowW2S(VOID) {
     }
 }
 
+static VOID VguiBackendTick(UINT64 Fired) {
+    volatile VGUI_DRAW_RT *P = &gVguiDrawParams;
+    if ((Fired & 0x3F) != 0) return;
+    UINT64 Pack =
+          ((UINT64)P->TextX & 0xFFFFULL)
+        | (((UINT64)P->TextY & 0xFFFFULL) << 16)
+        | (((UINT64)P->TextRgba) << 32);
+    HvLogHex("VG5", Pack);
+}
+
+static VOID VguiProbeTick(UINT64 Cr3, UINT64 ImageBase, UINT64 Fired) {
+    volatile VGUI_DRAW_RT *P = &gVguiDrawParams;
+    if (!P->Enabled || P->Rollback) {
+        P->BackendActive = 0;
+        return;
+    }
+    if (P->CandidateGlobalRva == 0) {
+        VguiRecordFault(0x100);
+        return;
+    }
+
+    UINT64 GlobalVa = ImageBase + (UINT64)P->CandidateGlobalRva;
+    UINT64 Iface = 0;
+    if (EFI_ERROR(ReadGuestVirtual(Cr3, GlobalVa, &Iface, 8)) || !IsUserVaCanonical(Iface)) {
+        VguiRecordFault(0x101);
+        return;
+    }
+    UINT64 Vtable = 0;
+    if (EFI_ERROR(ReadGuestVirtual(Cr3, Iface, &Vtable, 8)) || !IsUserVaCanonical(Vtable)) {
+        VguiRecordFault(0x102);
+        return;
+    }
+    if (P->SlotDrawText == 0) {
+        VguiRecordFault(0x103);
+        return;
+    }
+
+    UINT64 DrawFn = 0;
+    UINT64 SetPosFn = 0;
+    UINT64 SetColorFn = 0;
+    if (EFI_ERROR(ReadGuestVirtual(Cr3, Vtable + (UINT64)P->SlotDrawText * 8ULL, &DrawFn, 8))
+        || !IsUserVaCanonical(DrawFn)) {
+        VguiRecordFault(0x104);
+        return;
+    }
+    if (P->SlotSetTextPos != 0) {
+        if (EFI_ERROR(ReadGuestVirtual(Cr3, Vtable + (UINT64)P->SlotSetTextPos * 8ULL, &SetPosFn, 8))
+            || !IsUserVaCanonical(SetPosFn)) {
+            VguiRecordFault(0x105);
+            return;
+        }
+    }
+    if (P->SlotSetTextColor != 0) {
+        if (EFI_ERROR(ReadGuestVirtual(Cr3, Vtable + (UINT64)P->SlotSetTextColor * 8ULL, &SetColorFn, 8))
+            || !IsUserVaCanonical(SetColorFn)) {
+            VguiRecordFault(0x106);
+            return;
+        }
+    }
+    (VOID)SetPosFn;
+    (VOID)SetColorFn;
+
+    if (Iface == P->LastIface && Vtable == P->LastVtable && DrawFn == P->LastDrawFn) {
+        if (P->StableCount < 0xFF) P->StableCount++;
+    } else {
+        P->StableCount = 1;
+    }
+    P->LastIface = Iface;
+    P->LastVtable = Vtable;
+    P->LastDrawFn = DrawFn;
+
+    if ((Fired & 0x1F) == 0) {
+        HvLogHex("VG1", Iface);
+        HvLogHex("VGV", Vtable);
+    }
+
+    UINT8 Need = (P->StableNeed == 0) ? 1 : P->StableNeed;
+    if (!P->GatePassed && P->StableCount >= Need) {
+        P->GatePassed = 1;
+        HvLogHex("VG2", ((UINT64)Need << 56) | (P->CandidateGlobalRva & 0x00FFFFFFFFFFFFFFULL));
+    }
+
+    if (P->DryRunArm && P->GatePassed && !P->DryRunDone) {
+        UINT64 Prologue = 0;
+        if (EFI_ERROR(ReadGuestVirtual(Cr3, DrawFn, &Prologue, 8))) {
+            VguiRecordFault(0x107);
+            return;
+        }
+        P->DryRunDone = 1;
+        P->DryRunArm = 0;
+        HvLogHex("VG4", Prologue);
+    }
+
+    if (!P->ProbeOnly && P->GatePassed && P->DryRunDone && !P->Rollback) {
+        P->BackendActive = 1;
+        VguiBackendTick(Fired);
+    } else {
+        P->BackendActive = 0;
+    }
+}
+
 // ---------- per-tick orchestration ----------
 static VOID DrawHookPayloadTick(PVCPU_DATA Vcpu) {
     UINT64 Fired = __atomic_add_fetch(&gPayloadTicksFired, 1, __ATOMIC_RELAXED);
@@ -845,6 +976,7 @@ static VOID DrawHookPayloadTick(PVCPU_DATA Vcpu) {
     if (HasLocal) HypeAimTriggerTick(Cr3, ImageBase, Fired);
     if (HasLocal) MenuTick(Cr3, ImageBase, Fired);
     if (HasLocal) ProbeGlowW2S();
+    if (HasLocal) VguiProbeTick(Cr3, ImageBase, Fired);
 
     MirrorSnapshots(Fired);
     HypeRenderTick(Vcpu, Cr3, ImageBase, Fired);
@@ -1007,6 +1139,76 @@ UINT32 HookDrawHandleSetGlowParams(PVCPU_DATA Vcpu, COVERT_CMD *Cmd) {
     HvLogHex("GP0", A);
     HvLogHex("GP1", B);
     Cmd->Result = A;
+    return COVERT_STATUS_OK;
+}
+
+// PMC_CMD_SET_VGUI_PARAMS — packed control for probe/gate/backend:
+// Arg1:
+//   [7:0]   Enabled
+//   [15:8]  ProbeOnly
+//   [23:16] DryRunArm
+//   [31:24] Rollback
+//   [39:32] FailClosed
+//   [47:40] StableNeed
+//   [55:48] MaxFaults
+// Arg2:
+//   [31:0]  CandidateGlobalRva
+//   [39:32] SlotDrawText
+//   [47:40] SlotSetTextPos
+//   [55:48] SlotSetTextColor
+//   [63:56] SlotSetFont
+// Arg3:
+//   [15:0]  TextX
+//   [31:16] TextY
+//   [63:32] TextRgba
+UINT32 HookDrawHandleSetVguiParams(PVCPU_DATA Vcpu, COVERT_CMD *Cmd) {
+    (VOID)Vcpu;
+    UINT64 A = Cmd->Arg1;
+    UINT64 B = Cmd->Arg2;
+    UINT64 C = Cmd->Arg3;
+    volatile VGUI_DRAW_RT *P = &gVguiDrawParams;
+
+    P->Enabled       = (UINT8)( A        & 0xFF);
+    P->ProbeOnly     = (UINT8)((A >>  8) & 0xFF);
+    P->DryRunArm     = (UINT8)((A >> 16) & 0xFF);
+    P->Rollback      = (UINT8)((A >> 24) & 0xFF);
+    P->FailClosed    = (UINT8)((A >> 32) & 0xFF);
+    P->StableNeed    = (UINT8)((A >> 40) & 0xFF);
+    P->MaxFaults     = (UINT8)((A >> 48) & 0xFF);
+
+    P->CandidateGlobalRva = (UINT32)(B & 0xFFFFFFFFULL);
+    P->SlotDrawText       = (UINT8)((B >> 32) & 0xFF);
+    P->SlotSetTextPos     = (UINT8)((B >> 40) & 0xFF);
+    P->SlotSetTextColor   = (UINT8)((B >> 48) & 0xFF);
+    P->SlotSetFont        = (UINT8)((B >> 56) & 0xFF);
+
+    P->TextX              = (UINT16)( C        & 0xFFFF);
+    P->TextY              = (UINT16)((C >> 16) & 0xFFFF);
+    P->TextRgba           = (UINT32)((C >> 32) & 0xFFFFFFFFULL);
+
+    if (P->StableNeed == 0) P->StableNeed = 8;
+    if (P->MaxFaults  == 0) P->MaxFaults  = 4;
+    if (P->Rollback) {
+        P->Enabled = 0;
+        P->BackendActive = 0;
+    } else {
+        P->FaultCount = 0;
+        P->StableCount = 0;
+        P->GatePassed = 0;
+        P->DryRunDone = 0;
+        P->LastIface = 0;
+        P->LastVtable = 0;
+        P->LastDrawFn = 0;
+    }
+
+    HvLogHex("VG0", A);
+    HvLogHex("VGP", B);
+    Cmd->Result = ((UINT64)P->Enabled)
+                | ((UINT64)P->ProbeOnly << 8)
+                | ((UINT64)P->GatePassed << 16)
+                | ((UINT64)P->Rollback << 24)
+                | ((UINT64)P->FaultCount << 32)
+                | ((UINT64)P->StableCount << 40);
     return COVERT_STATUS_OK;
 }
 

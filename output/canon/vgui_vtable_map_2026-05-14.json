@@ -1,0 +1,37 @@
+{
+  "date": "2026-05-14",
+  "dumps": "/srv/nfs/shared/Shared/Tools/UNICORN_DUMPER/EAC/EAC/r5apex",
+  "interfaces": [
+    {
+      "global_rva": 39131104,
+      "global_va": "0x00000001425517E0",
+      "names": [
+        "All hud elements must derive from vgui::Panel * (%s)\n"
+      ],
+      "composite_score": 153,
+      "ranked_slots": [
+        {
+          "slot_index": 1,
+          "hits": 1,
+          "roles": {
+            "draw_text_candidate": 1
+          }
+        },
+        {
+          "slot_index": 7,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 2,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        }
+      ]
+    }
+  ]
+}

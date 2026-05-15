@@ -1639,6 +1639,12 @@ HandleNpf(
                 break;
             }
 
+            case PMC_CMD_SET_VGUI_PARAMS: {
+                CmdStatus = HookDrawHandleSetVguiParams(Vcpu, Cmd);
+                CmdResult = Cmd->Result;
+                break;
+            }
+
             // Trampoline registration (one-shot per boot). Client supplies
             // Arg1 = trampoline GVA (4KB-aligned scratch in client process).
             // HV translates → GPA, splits if large, sets NX so a guest RET

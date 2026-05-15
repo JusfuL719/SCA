@@ -30,6 +30,7 @@
 #define PMC_CMD_VIRT_CALL          0x20
 #define PMC_CMD_SET_AIM_PARAMS     0x21
 #define PMC_CMD_SET_MENU_ENABLE    0x22
+#define PMC_CMD_SET_VGUI_PARAMS    0x23
 #define PMC_CMD_RENDER_TEXT        0x29
 #define PMC_CMD_RENDER_CLEAR       0x2A
 #define PMC_CMD_RENDER_SET_SINK    0x2B
@@ -141,6 +142,23 @@ struct Args {
     uint8_t  glow_wvistype = 1;
     uint8_t  glow_wglowfix = 1;
     uint8_t  glow_squad    = 0;      // --squad-glow on|off → SET_GLOW_PARAMS Arg2[7:0]
+    // VGUI probe/backend knobs. vgui_set flips on any --vgui-* flag.
+    uint8_t  vgui_set          = 0;
+    uint8_t  vgui_enabled      = 1;
+    uint8_t  vgui_probe_only   = 1;           // probe_only_arm default
+    uint8_t  vgui_dry_arm      = 0;
+    uint8_t  vgui_rollback     = 0;           // operator explicitly clears fail-closed latch
+    uint8_t  vgui_fail_closed  = 1;
+    uint8_t  vgui_stable_need  = 8;
+    uint8_t  vgui_max_faults   = 4;
+    uint32_t vgui_global_rva   = 0x025517E0u; // canon from vgui_dryrun_verdict_2026-05-14.md
+    uint8_t  vgui_slot_draw    = 1;
+    uint8_t  vgui_slot_pos     = 2;
+    uint8_t  vgui_slot_color   = 7;
+    uint8_t  vgui_slot_font    = 0;
+    uint16_t vgui_text_x       = 960;
+    uint16_t vgui_text_y       = 120;
+    uint32_t vgui_text_rgba    = 0xFFFFFFFFu;
     // --live-memdump <dir> — Phase-4 CR3 + SET_CR3 + VIRT_READ bulk → three
     // section files. No scratch, no HOOK_INSTALL_DRAW (won't butcher .text
     // when hook RVA drifted vs current build).
@@ -217,6 +235,32 @@ static Args ParseArgs(int argc, char** argv) {
             else                                 a.glow_squad = (uint8_t)ParseHex(v);
             continue;
         }
+        if (std::strcmp(f, "--vgui-enable") == 0) {
+            a.vgui_set = 1;
+            a.vgui_enabled = 1;
+            a.vgui_rollback = 0;
+            continue;
+        }
+        if (std::strcmp(f, "--vgui-disable") == 0) {
+            a.vgui_set = 1;
+            a.vgui_enabled = 0;
+            a.vgui_rollback = 1;
+            continue;
+        }
+        if (std::strcmp(f, "--vgui-probe-only") == 0 && need(i,1)) { a.vgui_probe_only  = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-dry-arm")    == 0)              { a.vgui_dry_arm     = 1;                             a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-rollback")   == 0 && need(i,1)) { a.vgui_rollback    = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-fail-closed")== 0 && need(i,1)) { a.vgui_fail_closed = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-stable-need")== 0 && need(i,1)) { a.vgui_stable_need = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-max-faults") == 0 && need(i,1)) { a.vgui_max_faults  = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-global-rva") == 0 && need(i,1)) { a.vgui_global_rva  = (uint32_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-slot-draw")  == 0 && need(i,1)) { a.vgui_slot_draw   = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-slot-pos")   == 0 && need(i,1)) { a.vgui_slot_pos    = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-slot-color") == 0 && need(i,1)) { a.vgui_slot_color  = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-slot-font")  == 0 && need(i,1)) { a.vgui_slot_font   = (uint8_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-text-x")     == 0 && need(i,1)) { a.vgui_text_x      = (uint16_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-text-y")     == 0 && need(i,1)) { a.vgui_text_y      = (uint16_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
+        if (std::strcmp(f, "--vgui-text-rgba")  == 0 && need(i,1)) { a.vgui_text_rgba   = (uint32_t)ParseHex(argv[++i]); a.vgui_set = 1; continue; }
 
         // --aim-params: packed u64 → PMC_CMD_SET_AIM_PARAMS (0x21).
         // Individual flags mirror the q4.4 bitfield layout; see HypeAimTrigger.h.
@@ -1284,6 +1328,28 @@ int main(int argc, char** argv) {
         return s;
     };
 
+    auto PackVguiArg1 = [&](const Args& a) {
+        return (uint64_t)a.vgui_enabled
+             | ((uint64_t)a.vgui_probe_only  <<  8)
+             | ((uint64_t)a.vgui_dry_arm     << 16)
+             | ((uint64_t)a.vgui_rollback    << 24)
+             | ((uint64_t)a.vgui_fail_closed << 32)
+             | ((uint64_t)a.vgui_stable_need << 40)
+             | ((uint64_t)a.vgui_max_faults  << 48);
+    };
+    auto PackVguiArg2 = [&](const Args& a) {
+        return (uint64_t)a.vgui_global_rva
+             | ((uint64_t)a.vgui_slot_draw  << 32)
+             | ((uint64_t)a.vgui_slot_pos   << 40)
+             | ((uint64_t)a.vgui_slot_color << 48)
+             | ((uint64_t)a.vgui_slot_font  << 56);
+    };
+    auto PackVguiArg3 = [&](const Args& a) {
+        return (uint64_t)a.vgui_text_x
+             | ((uint64_t)a.vgui_text_y << 16)
+             | ((uint64_t)a.vgui_text_rgba << 32);
+    };
+
     // --reconfig: push gGlowParams + exit. HV must already be armed
     // from a prior install this boot. Iteration cost: ~3 sec round trip.
     auto SendGlowParams = [&](const Args& a) {
@@ -1308,6 +1374,24 @@ int main(int argc, char** argv) {
         return s;
     };
 
+    auto SendVguiParams = [&](const Args& a) {
+        const uint64_t packed1 = PackVguiArg1(a);
+        const uint64_t packed2 = PackVguiArg2(a);
+        const uint64_t packed3 = PackVguiArg3(a);
+        uint64_t result = 0;
+        const uint32_t s = ch.Fire(PMC_CMD_SET_VGUI_PARAMS, packed1, packed2, packed3, &result);
+        std::printf("VGUI_PARAMS en=%u po=%u dry=%u rb=%u fc=%u stable=%u "
+                    "maxf=%u rva=0x%08X slots(d=%u,p=%u,c=%u,f=%u) "
+                    "txt(x=%u,y=%u,rgba=0x%08X) result=0x%016llX status=%u\n",
+                    a.vgui_enabled, a.vgui_probe_only, a.vgui_dry_arm,
+                    a.vgui_rollback, a.vgui_fail_closed, a.vgui_stable_need,
+                    a.vgui_max_faults, a.vgui_global_rva,
+                    a.vgui_slot_draw, a.vgui_slot_pos, a.vgui_slot_color, a.vgui_slot_font,
+                    a.vgui_text_x, a.vgui_text_y, a.vgui_text_rgba,
+                    (unsigned long long)result, s);
+        return s;
+    };
+
     auto SendMenuEnable = [&](const Args& a) {
         uint64_t result = 0;
         const uint32_t s = ch.Fire(PMC_CMD_SET_MENU_ENABLE,
@@ -1324,6 +1408,10 @@ int main(int argc, char** argv) {
         if (args.aim_set) {
             s = SendAimParams(args);
             if (s != covert::kStatusOk) return 31;
+        }
+        if (args.vgui_set) {
+            s = SendVguiParams(args);
+            if (s != covert::kStatusOk) return 33;
         }
         s = SendMenuEnable(args);
         if (s != covert::kStatusOk) return 32;
@@ -1364,9 +1452,11 @@ int main(int argc, char** argv) {
     // Install tail in one mailbox round-trip. HV's mailbox loop dispatches
     // sequentially (HypeVmexit.c:1436), and SET_CR3 calls InvalidateSoftTlb
     // inside its own handler (line 1458) — so HOOK_INSTALL_DRAW sees the
-    // refreshed TargetCr3 within the same batch. SET_GLOW_PARAMS and
-    // SET_AIM_PARAMS are packed conditionally (slots 4 and 5).
-    covert::Cmd tail[6] = {};
+    // refreshed TargetCr3 within the same batch. SET_GLOW_PARAMS,
+    // SET_AIM_PARAMS, and SET_VGUI_PARAMS are packed conditionally.
+    covert::Cmd tail[7] = {};
+    const covert::Cmd* gp_tail_cmd = nullptr;
+    const covert::Cmd* vg_tail_cmd = nullptr;
     uint32_t tail_n = 0;
     auto& cr3_cmd  = tail[tail_n++];
     cr3_cmd.cmd_id = PMC_CMD_SET_CR3;
@@ -1391,6 +1481,7 @@ int main(int argc, char** argv) {
             | ((uint64_t)args.glow_wvistype << 48)
             | ((uint64_t)args.glow_wglowfix << 56);
         gp_cmd.arg2   = (uint64_t)args.glow_squad;  // Arg2[7:0] = SquadGlow
+        gp_tail_cmd = &gp_cmd;
     }
     if (args.aim_set) {
         auto& ap_cmd  = tail[tail_n++];
@@ -1402,6 +1493,14 @@ int main(int argc, char** argv) {
             | ((uint64_t)args.aim_trig_thresh << 24)
             | ((uint64_t)args.aim_debounce    << 32)
             | ((uint64_t)args.aim_fov         << 40);
+    }
+    if (args.vgui_set) {
+        auto& vg_cmd  = tail[tail_n++];
+        vg_cmd.cmd_id = PMC_CMD_SET_VGUI_PARAMS;
+        vg_cmd.arg1   = PackVguiArg1(args);
+        vg_cmd.arg2   = PackVguiArg2(args);
+        vg_cmd.arg3   = PackVguiArg3(args);
+        vg_tail_cmd = &vg_cmd;
     }
 
     // Menu controller — armed by default; --menu-disable sends arg1=0.
@@ -1453,14 +1552,27 @@ int main(int argc, char** argv) {
         Log(args, "[WARN] HOOK_DRAW_PEEK status=%u\n", peek_cmd.status);
     }
 
-    if (args.glow_set) {
-        const covert::Cmd& gp = tail[3];
+    if (gp_tail_cmd != nullptr) {
+        const covert::Cmd& gp = *gp_tail_cmd;
         Log(args, "GLOW_PARAMS slot=%u mask=0x%02X filter=%u enabled=%u "
                   "vt=%u(w=%u) gf=%u(w=%u) squad=%u packed=0x%016llX/0x%016llX status=%u\n",
             args.glow_slot, args.glow_mask, args.glow_filter, args.glow_enabled,
             args.glow_vistype, args.glow_wvistype,
             args.glow_glowfix, args.glow_wglowfix, args.glow_squad,
             (unsigned long long)gp.arg1, (unsigned long long)gp.arg2, gp.status);
+    }
+    if (vg_tail_cmd != nullptr) {
+        const covert::Cmd& vg = *vg_tail_cmd;
+        Log(args, "VGUI_PARAMS en=%u po=%u dry=%u rb=%u fc=%u stable=%u "
+                  "maxf=%u rva=0x%08X slots(d=%u,p=%u,c=%u,f=%u) "
+                  "txt(x=%u,y=%u,rgba=0x%08X) packed=0x%016llX/0x%016llX/0x%016llX status=%u\n",
+            args.vgui_enabled, args.vgui_probe_only, args.vgui_dry_arm,
+            args.vgui_rollback, args.vgui_fail_closed, args.vgui_stable_need,
+            args.vgui_max_faults, args.vgui_global_rva,
+            args.vgui_slot_draw, args.vgui_slot_pos, args.vgui_slot_color, args.vgui_slot_font,
+            args.vgui_text_x, args.vgui_text_y, args.vgui_text_rgba,
+            (unsigned long long)vg.arg1, (unsigned long long)vg.arg2,
+            (unsigned long long)vg.arg3, vg.status);
     }
 
     // Optional sink override — sentinel-test iteration. Pushed BEFORE the

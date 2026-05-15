@@ -1,0 +1,999 @@
+{
+  "date": "2026-05-14",
+  "dumps": "/srv/nfs/shared/Shared/Tools/UNICORN_DUMPER/EAC/EAC/r5apex",
+  "n_keyword_strings": 40,
+  "n_candidates": 9,
+  "candidates": [
+    {
+      "name": "All hud elements must derive from vgui::Panel * (%s)\n",
+      "name_rva": 26116168,
+      "keyword_score": 31,
+      "n_xrefs": 1,
+      "chosen_global_rva": 39131104,
+      "global_votes": {
+        "39131104": 1
+      },
+      "unique_slots": [
+        1,
+        2,
+        7
+      ],
+      "slot_map": {
+        "draw_text": 1,
+        "set_text_pos": 2,
+        "set_text_color": 7,
+        "set_font": 7
+      },
+      "top_slots": [
+        {
+          "slot_index": 1,
+          "score": 7,
+          "roles": {
+            "draw_text_candidate": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0x9A06EF"
+        },
+        {
+          "slot_index": 7,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0x9A06BF"
+        },
+        {
+          "slot_index": 2,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0x9A071B"
+        }
+      ],
+      "candidate_score": 153,
+      "xrefs": [
+        "0x9A06C5"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 10094277,
+          "name_rva": 26116168,
+          "chosen_global_rva": 39131104,
+          "global_rvas": [
+            39131056,
+            39131104
+          ],
+          "slot_hits": [
+            {
+              "slot_index": 7,
+              "disp": 56,
+              "role": "unknown",
+              "rip_rva": 10094271,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 10094319,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 2,
+              "disp": 16,
+              "role": "unknown",
+              "rip_rva": 10094363,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "direct",
+              "target_rva": 21079268,
+              "role": "draw_text_candidate",
+              "rip_rva": 10094250
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 56,
+              "slot_index": 7,
+              "role": "unknown",
+              "rip_rva": 10094271
+            },
+            {
+              "kind": "direct",
+              "target_rva": 6094016,
+              "role": "unknown",
+              "rip_rva": 10094284
+            },
+            {
+              "kind": "direct",
+              "target_rva": 2493264,
+              "role": "draw_text_candidate",
+              "rip_rva": 10094301
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 10094319
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 16,
+              "slot_index": 2,
+              "role": "unknown",
+              "rip_rva": 10094363
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "drawtext_vgui_centered",
+      "name_rva": 27035104,
+      "keyword_score": 41,
+      "n_xrefs": 1,
+      "chosen_global_rva": null,
+      "global_votes": {},
+      "unique_slots": [
+        34
+      ],
+      "slot_map": {
+        "draw_text": 34,
+        "set_text_pos": null,
+        "set_text_color": null,
+        "set_font": null
+      },
+      "top_slots": [
+        {
+          "slot_index": 34,
+          "score": 7,
+          "roles": {
+            "draw_text_candidate": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0xEE5595"
+        }
+      ],
+      "candidate_score": 139,
+      "xrefs": [
+        "0xEE557C"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 15619452,
+          "name_rva": 27035104,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 34,
+              "disp": 272,
+              "role": "draw_text_candidate",
+              "rip_rva": 15619477,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "direct",
+              "target_rva": 15617776,
+              "role": "unknown",
+              "rip_rva": 15619431
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 272,
+              "slot_index": 34,
+              "role": "draw_text_candidate",
+              "rip_rva": 15619477
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "drawtext_vgui",
+      "name_rva": 25437216,
+      "keyword_score": 37,
+      "n_xrefs": 2,
+      "chosen_global_rva": null,
+      "global_votes": {},
+      "unique_slots": [
+        34,
+        209
+      ],
+      "slot_map": {
+        "draw_text": 34,
+        "set_text_pos": 209,
+        "set_text_color": null,
+        "set_font": null
+      },
+      "top_slots": [
+        {
+          "slot_index": 34,
+          "score": 14,
+          "roles": {
+            "draw_text_candidate": 2
+          },
+          "n_hits": 2,
+          "sample_rip_rva": "0x652B57"
+        },
+        {
+          "slot_index": 209,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0x652B77"
+        }
+      ],
+      "candidate_score": 137,
+      "xrefs": [
+        "0x652B31",
+        "0xEE5573"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 6630193,
+          "name_rva": 25437216,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 34,
+              "disp": 272,
+              "role": "draw_text_candidate",
+              "rip_rva": 6630231,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 209,
+              "disp": 1672,
+              "role": "unknown",
+              "rip_rva": 6630263,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 272,
+              "slot_index": 34,
+              "role": "draw_text_candidate",
+              "rip_rva": 6630231
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 1672,
+              "slot_index": 209,
+              "role": "unknown",
+              "rip_rva": 6630263
+            }
+          ]
+        },
+        {
+          "status": "ok",
+          "xref_rva": 15619443,
+          "name_rva": 25437216,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 34,
+              "disp": 272,
+              "role": "draw_text_candidate",
+              "rip_rva": 15619477,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "direct",
+              "target_rva": 15617776,
+              "role": "unknown",
+              "rip_rva": 15619431
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 272,
+              "slot_index": 34,
+              "role": "draw_text_candidate",
+              "rip_rva": 15619477
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FooterPanel.ButtonTextFontHeightRui",
+      "name_rva": 25435528,
+      "keyword_score": 33,
+      "n_xrefs": 1,
+      "chosen_global_rva": null,
+      "global_votes": {},
+      "unique_slots": [
+        1,
+        95
+      ],
+      "slot_map": {
+        "draw_text": 1,
+        "set_text_pos": null,
+        "set_text_color": 95,
+        "set_font": null
+      },
+      "top_slots": [
+        {
+          "slot_index": 1,
+          "score": 14,
+          "roles": {
+            "draw_text_candidate": 2
+          },
+          "n_hits": 2,
+          "sample_rip_rva": "0x64B160"
+        },
+        {
+          "slot_index": 95,
+          "score": 12,
+          "roles": {
+            "draw_text_candidate": 1,
+            "set_color_candidate": 1
+          },
+          "n_hits": 2,
+          "sample_rip_rva": "0x64B1AA"
+        }
+      ],
+      "candidate_score": 123,
+      "xrefs": [
+        "0x64B173"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 6599027,
+          "name_rva": 25435528,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599008,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599040,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 95,
+              "disp": 760,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599082,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 95,
+              "disp": 760,
+              "role": "set_color_candidate",
+              "rip_rva": 6599121,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599008
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599040
+            },
+            {
+              "kind": "direct",
+              "target_rva": 21172808,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599046
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 760,
+              "slot_index": 95,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599082
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 760,
+              "slot_index": 95,
+              "role": "set_color_candidate",
+              "rip_rva": 6599121
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Label.RuiFontHeight",
+      "name_rva": 27022240,
+      "keyword_score": 29,
+      "n_xrefs": 1,
+      "chosen_global_rva": null,
+      "global_votes": {},
+      "unique_slots": [
+        1,
+        261,
+        265
+      ],
+      "slot_map": {
+        "draw_text": 1,
+        "set_text_pos": 265,
+        "set_text_color": 261,
+        "set_font": null
+      },
+      "top_slots": [
+        {
+          "slot_index": 1,
+          "score": 14,
+          "roles": {
+            "draw_text_candidate": 2
+          },
+          "n_hits": 2,
+          "sample_rip_rva": "0xE8613C"
+        },
+        {
+          "slot_index": 265,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0xE86172"
+        },
+        {
+          "slot_index": 261,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0xE8619C"
+        }
+      ],
+      "candidate_score": 119,
+      "xrefs": [
+        "0xE86153"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 15229267,
+          "name_rva": 27022240,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229244,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229277,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 265,
+              "disp": 2120,
+              "role": "unknown",
+              "rip_rva": 15229298,
+              "base_reg": "r8",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 261,
+              "disp": 2088,
+              "role": "unknown",
+              "rip_rva": 15229340,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229244
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229277
+            },
+            {
+              "kind": "direct",
+              "target_rva": 21172808,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229283
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "r8",
+              "disp": 2120,
+              "slot_index": 265,
+              "role": "unknown",
+              "rip_rva": 15229298
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 2088,
+              "slot_index": 261,
+              "role": "unknown",
+              "rip_rva": 15229340
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "%s, string labelText, string associate, alignment textAlignment, int wrap, int dulltext, int brighttext, string font",
+      "name_rva": 27022656,
+      "keyword_score": 36,
+      "n_xrefs": 1,
+      "chosen_global_rva": null,
+      "global_votes": {},
+      "unique_slots": [
+        1
+      ],
+      "slot_map": {
+        "draw_text": null,
+        "set_text_pos": 1,
+        "set_text_color": null,
+        "set_font": null
+      },
+      "top_slots": [
+        {
+          "slot_index": 1,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0xE88234"
+        }
+      ],
+      "candidate_score": 118,
+      "xrefs": [
+        "0xE881F0"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 15237616,
+          "name_rva": 27022656,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "unknown",
+              "rip_rva": 15237684,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "direct",
+              "target_rva": 6231616,
+              "role": "set_pos_candidate",
+              "rip_rva": 15237630
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "unknown",
+              "rip_rva": 15237684
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Label.RuiFont",
+      "name_rva": 27022224,
+      "keyword_score": 29,
+      "n_xrefs": 1,
+      "chosen_global_rva": null,
+      "global_votes": {},
+      "unique_slots": [
+        1,
+        265
+      ],
+      "slot_map": {
+        "draw_text": 1,
+        "set_text_pos": 265,
+        "set_text_color": null,
+        "set_font": null
+      },
+      "top_slots": [
+        {
+          "slot_index": 1,
+          "score": 14,
+          "roles": {
+            "draw_text_candidate": 2
+          },
+          "n_hits": 2,
+          "sample_rip_rva": "0xE8613C"
+        },
+        {
+          "slot_index": 265,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0xE86172"
+        }
+      ],
+      "candidate_score": 111,
+      "xrefs": [
+        "0xE86128"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 15229224,
+          "name_rva": 27022224,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229244,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229277,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 265,
+              "disp": 2120,
+              "role": "unknown",
+              "rip_rva": 15229298,
+              "base_reg": "r8",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "direct",
+              "target_rva": 15157184,
+              "role": "unknown",
+              "rip_rva": 15229206
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229244
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229277
+            },
+            {
+              "kind": "direct",
+              "target_rva": 21172808,
+              "role": "draw_text_candidate",
+              "rip_rva": 15229283
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "r8",
+              "disp": 2120,
+              "slot_index": 265,
+              "role": "unknown",
+              "rip_rva": 15229298
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DrawTextRui can only be set on RichText elements.",
+      "name_rva": 25535568,
+      "keyword_score": 29,
+      "n_xrefs": 1,
+      "chosen_global_rva": null,
+      "global_votes": {},
+      "unique_slots": [
+        25,
+        208,
+        260
+      ],
+      "slot_map": {
+        "draw_text": null,
+        "set_text_pos": 260,
+        "set_text_color": 208,
+        "set_font": null
+      },
+      "top_slots": [
+        {
+          "slot_index": 260,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0x68F70A"
+        },
+        {
+          "slot_index": 208,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0x68F6E7"
+        },
+        {
+          "slot_index": 25,
+          "score": 3,
+          "roles": {
+            "unknown": 1
+          },
+          "n_hits": 1,
+          "sample_rip_rva": "0x68F71A"
+        }
+      ],
+      "candidate_score": 109,
+      "xrefs": [
+        "0x68F6F1"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 6878961,
+          "name_rva": 25535568,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 208,
+              "disp": 1664,
+              "role": "unknown",
+              "rip_rva": 6878951,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 260,
+              "disp": 2080,
+              "role": "unknown",
+              "rip_rva": 6878986,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 25,
+              "disp": 200,
+              "role": "unknown",
+              "rip_rva": 6879002,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 1664,
+              "slot_index": 208,
+              "role": "unknown",
+              "rip_rva": 6878951
+            },
+            {
+              "kind": "direct",
+              "target_rva": 12874720,
+              "role": "unknown",
+              "rip_rva": 6878968
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 2080,
+              "slot_index": 260,
+              "role": "unknown",
+              "rip_rva": 6878986
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 200,
+              "slot_index": 25,
+              "role": "unknown",
+              "rip_rva": 6879002
+            },
+            {
+              "kind": "direct",
+              "target_rva": 12874720,
+              "role": "unknown",
+              "rip_rva": 6879021
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FooterPanel.TextFont",
+      "name_rva": 25435568,
+      "keyword_score": 29,
+      "n_xrefs": 1,
+      "chosen_global_rva": null,
+      "global_votes": {},
+      "unique_slots": [
+        1
+      ],
+      "slot_map": {
+        "draw_text": 1,
+        "set_text_pos": null,
+        "set_text_color": null,
+        "set_font": null
+      },
+      "top_slots": [
+        {
+          "slot_index": 1,
+          "score": 21,
+          "roles": {
+            "draw_text_candidate": 3
+          },
+          "n_hits": 3,
+          "sample_rip_rva": "0x64B106"
+        }
+      ],
+      "candidate_score": 103,
+      "xrefs": [
+        "0x64B118"
+      ],
+      "xref_analysis": [
+        {
+          "status": "ok",
+          "xref_rva": 6598936,
+          "name_rva": 25435568,
+          "chosen_global_rva": null,
+          "global_rvas": [],
+          "slot_hits": [
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 6598918,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 6598949,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            },
+            {
+              "slot_index": 1,
+              "disp": 8,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599008,
+              "base_reg": "rax",
+              "global_reg_match": 0
+            }
+          ],
+          "calls": [
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 6598918
+            },
+            {
+              "kind": "direct",
+              "target_rva": 21172808,
+              "role": "draw_text_candidate",
+              "rip_rva": 6598924
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 6598949
+            },
+            {
+              "kind": "indirect_mem",
+              "base_reg": "rax",
+              "disp": 8,
+              "slot_index": 1,
+              "role": "draw_text_candidate",
+              "rip_rva": 6599008
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

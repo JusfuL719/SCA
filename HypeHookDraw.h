@@ -34,6 +34,8 @@ UINT32 HookDrawHandlePeek(PVCPU_DATA Vcpu, COVERT_CMD *Cmd);
 
 // PMC_CMD_SET_GLOW_PARAMS (0x1D) — Arg1: [31:24]=Slot [23:16]=Mask [15:8]=Filter [7:0]=Enabled.
 UINT32 HookDrawHandleSetGlowParams(PVCPU_DATA Vcpu, COVERT_CMD *Cmd);
+// PMC_CMD_SET_VGUI_PARAMS (0x23) — runtime probe/backend gate toggle.
+UINT32 HookDrawHandleSetVguiParams(PVCPU_DATA Vcpu, COVERT_CMD *Cmd);
 
 // Runtime glow knobs. HypeMenu mutates these directly when the operator edits
 // a menu row; RenderGlow consumes them next tick.
@@ -50,6 +52,38 @@ typedef struct _GLOW_PARAMS_RT {
     UINT8  SquadSlot;   // HID for squad branch when SquadGlow=1 (default APEX_SLOT_SQUAD=80, yellow)
 } GLOW_PARAMS_RT;
 extern volatile GLOW_PARAMS_RT gGlowParams;
+
+// Runtime VGUI backend knobs (Phase-2 probe + Phase-4/5 gate/skeleton).
+typedef struct _VGUI_DRAW_RT {
+    UINT8   Enabled;            // master toggle
+    UINT8   ProbeOnly;          // 1=read-only probe; 0=allow backend skeleton
+    UINT8   DryRunArm;          // arm single dry-run gate event
+    UINT8   Rollback;           // hard bypass switch
+    UINT8   FailClosed;         // latch rollback on fault budget breach
+    UINT8   StableNeed;         // frames needed for gate pass
+    UINT8   MaxFaults;          // faults before fail-closed rollback
+    UINT8   Reserved0;
+    UINT32  CandidateGlobalRva; // ImageBase-relative global ptr slot
+    UINT8   SlotDrawText;       // vtable slot index (disp/8)
+    UINT8   SlotSetTextPos;     // vtable slot index
+    UINT8   SlotSetTextColor;   // vtable slot index
+    UINT8   SlotSetFont;        // optional
+    UINT16  TextX;              // fixed text position for skeleton
+    UINT16  TextY;
+    UINT32  TextRgba;           // packed color for skeleton
+
+    // Runtime state
+    UINT8   GatePassed;
+    UINT8   DryRunDone;
+    UINT8   BackendActive;
+    UINT8   FaultCount;
+    UINT8   StableCount;
+    UINT8   Reserved1[3];
+    UINT64  LastIface;
+    UINT64  LastVtable;
+    UINT64  LastDrawFn;
+} VGUI_DRAW_RT;
+extern volatile VGUI_DRAW_RT gVguiDrawParams;
 
 // NPT exec-trap dispatch — coexists with covert single-step via DrawHookActive flag.
 BOOLEAN DrawHookGpaMatches(UINT64 FaultGpa);
@@ -118,6 +152,7 @@ typedef struct _LOCAL_SNAPSHOT {
 #define DRAWBUF_OFF_AIM               0x0300
 #define DRAWBUF_OFF_VIEW_MATRIX_RAW   0x0400
 #define DRAWBUF_OFF_ENT_SNAPSHOTS     0x0800
+#define DRAWBUF_OFF_VGUI_STATE        0x3E00
 #define DRAWBUF_OFF_HEARTBEAT         0x3F00
 
 #endif

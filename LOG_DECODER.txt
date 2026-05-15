@@ -476,6 +476,20 @@
   GP0 = HvLogHex("GP0 glow params applied (Arg1)", Packed)
   GP1 = HvLogHex("GP1 glow params applied (Arg2 — SquadGlow in [7:0])", Packed)
 
+## VG* — VGUI foreign-draw RE probe/gate/backend markers (cycle 12a)
+# Read-only probe in DrawHookPayloadTick; no foreign invocation yet.
+# VG0/VGP emitted on PMC_CMD_SET_VGUI_PARAMS, VG1/VGV periodic pointer
+# samples, VG2 gate pass, VG4 dry-run precheck, VG5 backend skeleton tick.
+  VG0 = HvLogHex("VG0 vgui params Arg1", ...)
+  VGP = HvLogHex("VGP vgui params Arg2", ...)
+  VG1 = HvLogHex("VG1 vgui iface ptr sample", ...)
+  VGV = HvLogHex("VGV vgui vtable ptr sample", ...)
+  VG2 = HvLogHex("VG2 vgui gate pass (StableNeed|GlobalRva)", ...)
+  VG3 = HvLogHex("VG3 vgui fail-closed rollback latch", ...)
+  VG4 = HvLogHex("VG4 vgui dry-run draw slot prologue", ...)
+  VG5 = HvLogHex("VG5 vgui backend skeleton heartbeat (X|Y|RGBA)", ...)
+  VGQ = HvLogHex("VGQ vgui probe fault code", ...)
+
 ## XC0/XC1/XC2 — PMC_CMD_VIRT_CALL pipeline (cycle 11h)
 # Guest-context invocation of native r5apex setters (e.g. SetHighlightId
 # @ live RVA 0x818500, was 0x817600 pre 2026-05-13 +0xF00 re-pin).

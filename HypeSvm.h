@@ -41,6 +41,7 @@ typedef struct _NPT_CONTEXT NPT_CONTEXT, *PNPT_CONTEXT;
 #define PMC_CMD_VIRT_CALL         0x20
 #define PMC_CMD_SET_AIM_PARAMS    0x21
 #define PMC_CMD_SET_MENU_ENABLE   0x22
+#define PMC_CMD_SET_VGUI_PARAMS   0x23
 // Render queue — Phase 1: BackendNone (log-only). Phase 2+: string-hijack / vgui.
 // RENDER_TEXT Arg1 = packed (duration[15:0], x_q8[31:16], y_q8[47:32], color[55:48], flags[63:56])
 //             Arg2 = guest VA of null-terminated string (≤63 chars, in caller's locked memory).
