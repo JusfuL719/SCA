@@ -1,0 +1,161 @@
+{
+  "sdk_path": "/srv/nfs/shared/Shared/Tools/UNICORN_DUMPER/Japex_Jumper/EAC/EAC/r5apex/orion_apex_sdk.json",
+  "canon_path": "/srv/nfs/shared/Shared/SCA/HypeApexCanon.h",
+  "phase1_named_matches": [
+    {
+      "canon_name": "APEX_OFF_IN_ATTACK_KBUTTON",
+      "canon_rva": 64595544,
+      "sdk_section": "Buttons",
+      "sdk_key": "+attack",
+      "sdk_rva": 64595544,
+      "delta": 0,
+      "verdict": "MATCH"
+    },
+    {
+      "canon_name": "APEX_OFF_IN_JUMP",
+      "canon_rva": 64597776,
+      "sdk_section": "Buttons",
+      "sdk_key": "+jump",
+      "sdk_rva": 64597776,
+      "delta": 0,
+      "verdict": "MATCH"
+    },
+    {
+      "canon_name": "APEX_OFF_IN_DUCK",
+      "canon_rva": 64598024,
+      "sdk_section": "Buttons",
+      "sdk_key": "+duck",
+      "sdk_rva": 64598024,
+      "delta": 0,
+      "verdict": "MATCH"
+    },
+    {
+      "canon_name": "APEX_OFF_IN_FORWARD",
+      "canon_rva": 64598088,
+      "sdk_section": "Buttons",
+      "sdk_key": "+forward",
+      "sdk_rva": 64598088,
+      "delta": 0,
+      "verdict": "MATCH"
+    },
+    {
+      "canon_name": "APEX_OFF_IN_USE",
+      "canon_rva": 64597888,
+      "sdk_section": "Buttons",
+      "sdk_key": "+use",
+      "sdk_rva": 64597888,
+      "delta": 0,
+      "verdict": "MATCH"
+    },
+    {
+      "canon_name": "APEX_OFF_IN_SPEED",
+      "canon_rva": 64595424,
+      "sdk_section": "Buttons",
+      "sdk_key": "+speed",
+      "sdk_rva": 64595424,
+      "delta": 0,
+      "verdict": "MATCH"
+    },
+    {
+      "canon_name": "APEX_OFF_SHOW_FPS",
+      "canon_rva": 32527104,
+      "sdk_section": "Convars",
+      "sdk_key": "showfps_enabled",
+      "sdk_rva": 32527104,
+      "delta": 0,
+      "verdict": "MATCH"
+    },
+    {
+      "canon_name": "APEX_OFF_MP_GAMEMODE",
+      "canon_rva": 40674896,
+      "sdk_section": "Convars",
+      "sdk_key": "mp_gamemode",
+      "sdk_rva": 40674896,
+      "delta": 0,
+      "verdict": "MATCH"
+    },
+    {
+      "canon_name": "APEX_OFF_CROSSPLAY_ENABLED",
+      "canon_rva": 32168544,
+      "sdk_section": "Convars",
+      "sdk_key": "crossplay_enabled",
+      "sdk_rva": null,
+      "delta": null,
+      "verdict": "SDK_MISSING"
+    }
+  ],
+  "phase3_indirect_globals": [
+    {
+      "name": "APEX_OFF_IN_ATTACK_KBUTTON",
+      "rva": 64595544,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    },
+    {
+      "name": "APEX_OFF_IN_JUMP",
+      "rva": 64597776,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    },
+    {
+      "name": "APEX_OFF_IN_DUCK",
+      "rva": 64598024,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    },
+    {
+      "name": "APEX_OFF_IN_FORWARD",
+      "rva": 64598088,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    },
+    {
+      "name": "APEX_OFF_IN_USE",
+      "rva": 64597888,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    },
+    {
+      "name": "APEX_OFF_IN_SPEED",
+      "rva": 64595424,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    },
+    {
+      "name": "APEX_OFF_SHOW_FPS",
+      "rva": 32527104,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    },
+    {
+      "name": "APEX_OFF_CROSSPLAY_ENABLED",
+      "rva": 32168544,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    },
+    {
+      "name": "APEX_OFF_MP_GAMEMODE",
+      "rva": 40674896,
+      "verdict": "NO_INDIRECT_REF",
+      "rdata_hits": 0,
+      "data_hits": 0,
+      "reason": "no qword anywhere points to this VA"
+    }
+  ]
+}

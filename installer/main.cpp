@@ -149,7 +149,7 @@ struct Args {
     uint8_t  vgui_dry_arm      = 0;
     uint8_t  vgui_rollback     = 0;           // operator explicitly clears fail-closed latch
     uint8_t  vgui_fail_closed  = 1;
-    uint8_t  vgui_stable_need  = 8;
+    uint8_t  vgui_stable_need  = 2;  // bring-up: HV defaults match (cycle 12b)
     uint8_t  vgui_max_faults   = 4;
     // canon from output/canon/vgui_dryrun_verdict_2026-05-14.md (v2 provenance-tracked).
     // Old pin (0x025517E0 + 1/2/7) was a panic-string trap; rewritten surface probe

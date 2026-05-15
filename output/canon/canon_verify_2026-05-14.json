@@ -1,0 +1,475 @@
+{
+  "dumps": "/srv/nfs/shared/Shared/Tools/UNICORN_DUMPER/r5apex_live",
+  "canon": "/srv/nfs/shared/Shared/SCA/HypeApexCanon.h",
+  "data_globals": [
+    {
+      "name": "APEX_OFF_ENTITY_LIST",
+      "rva": 103189480,
+      "n_xrefs": 1469,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": null,
+      "verdict": "OK",
+      "reason": "non-entity global (no STRICT_ENT field accesses; expected for non-player ptrs)"
+    },
+    {
+      "name": "APEX_OFF_VIEW_RENDER",
+      "rva": 64593928,
+      "n_xrefs": 68,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": null,
+      "verdict": "OK",
+      "reason": "non-entity global (no STRICT_ENT field accesses; expected for non-player ptrs)"
+    },
+    {
+      "name": "APEX_OFF_NAME_LIST",
+      "rva": 147214688,
+      "n_xrefs": 16,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": null,
+      "verdict": "OK",
+      "reason": "non-entity global (no STRICT_ENT field accesses; expected for non-player ptrs)"
+    },
+    {
+      "name": "APEX_OFF_OBSERVER_LIST",
+      "rva": 103197704,
+      "n_xrefs": 7,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": null,
+      "verdict": "OK",
+      "reason": "non-entity global (no STRICT_ENT field accesses; expected for non-player ptrs)"
+    },
+    {
+      "name": "APEX_OFF_LOCAL_PLAYER",
+      "rva": 64434456,
+      "n_xrefs": 98,
+      "ent_reads": 3,
+      "ent_writes": 6,
+      "fields": {
+        "+0x324": {
+          "name": "m_iHealth",
+          "r": 3,
+          "w": 6
+        }
+      },
+      "sdk_match": null,
+      "verdict": "OK_ENTITY_SHAPED",
+      "reason": "9 entity-field ops on 1 distinct fields"
+    },
+    {
+      "name": "APEX_OFF_HIGHLIGHT_SETTINGS",
+      "rva": 110831808,
+      "n_xrefs": 15,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": null,
+      "verdict": "OK",
+      "reason": "non-entity global (no STRICT_ENT field accesses; expected for non-player ptrs)"
+    },
+    {
+      "name": "APEX_OFF_VIEW_MATRIX_DEREF",
+      "rva": 1155920,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Mics:ViewMatrix",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Mics:ViewMatrix)"
+    },
+    {
+      "name": "APEX_OFF_IN_ATTACK_KBUTTON",
+      "rva": 64595544,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Buttons:+attack",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Buttons:+attack)"
+    },
+    {
+      "name": "APEX_OFF_MP_GAMEMODE",
+      "rva": 40674896,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Convars:mp_gamemode",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Convars:mp_gamemode)"
+    },
+    {
+      "name": "APEX_OFF_CROSSPLAY_ENABLED",
+      "rva": 32168544,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Convars:crossPlay_Enabled",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Convars:crossPlay_Enabled)"
+    },
+    {
+      "name": "APEX_OFF_SHOW_FPS",
+      "rva": 32527104,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Convars:showfps_enabled",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Convars:showfps_enabled)"
+    },
+    {
+      "name": "APEX_OFF_IN_JUMP",
+      "rva": 64597776,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Buttons:+jump",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Buttons:+jump)"
+    },
+    {
+      "name": "APEX_OFF_IN_DUCK",
+      "rva": 64598024,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Buttons:+duck",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Buttons:+duck)"
+    },
+    {
+      "name": "APEX_OFF_IN_FORWARD",
+      "rva": 64598088,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Buttons:+forward",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Buttons:+forward)"
+    },
+    {
+      "name": "APEX_OFF_IN_USE",
+      "rva": 64597888,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Buttons:+use",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Buttons:+use)"
+    },
+    {
+      "name": "APEX_OFF_IN_SPEED",
+      "rva": 64595424,
+      "n_xrefs": 0,
+      "ent_reads": 0,
+      "ent_writes": 0,
+      "fields": {},
+      "sdk_match": "Buttons:+speed",
+      "verdict": "OK_INDIRECT",
+      "reason": "0 xrefs (indirect-access global; SDK match: Buttons:+speed)"
+    }
+  ],
+  "entity_offsets": [
+    {
+      "name": "APEX_ENT_ORIGIN",
+      "off": 380,
+      "n_disp32_hits": 242,
+      "verdict": "OK",
+      "reason": "242 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_VELOCITY_RAW",
+      "off": 368,
+      "n_disp32_hits": 962,
+      "verdict": "OK",
+      "reason": "962 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_SHIELD",
+      "off": 416,
+      "n_disp32_hits": 783,
+      "verdict": "OK",
+      "reason": "783 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_MAX_SHIELD",
+      "off": 420,
+      "n_disp32_hits": 104,
+      "verdict": "OK",
+      "reason": "104 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_HC_RESULT_STATE",
+      "off": 620,
+      "n_disp32_hits": 89,
+      "verdict": "OK",
+      "reason": "89 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_HC_LAST_LOS_TIME",
+      "off": 632,
+      "n_disp32_hits": 611,
+      "verdict": "OK",
+      "reason": "611 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HIGHLIGHT_TEAM_INDEX",
+      "off": 488,
+      "n_disp32_hits": 326,
+      "verdict": "OK",
+      "reason": "326 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HIGHLIGHT_TEAM_BITS",
+      "off": 504,
+      "n_disp32_hits": 453,
+      "verdict": "OK",
+      "reason": "453 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HIGHLIGHT_FADE_SCALE",
+      "off": 660,
+      "n_disp32_hits": 81,
+      "verdict": "OK",
+      "reason": "81 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HIGHLIGHT_ID",
+      "off": 664,
+      "n_disp32_hits": 396,
+      "verdict": "OK",
+      "reason": "396 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HIGHLIGHT_GENERIC_CTX",
+      "off": 665,
+      "n_disp32_hits": 20,
+      "verdict": "OK",
+      "reason": "20 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HIGHLIGHT_FOCUSED",
+      "off": 673,
+      "n_disp32_hits": 20,
+      "verdict": "OK",
+      "reason": "20 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HIGHLIGHT_FADE_DURATION",
+      "off": 676,
+      "n_disp32_hits": 51,
+      "verdict": "OK",
+      "reason": "51 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HIGHLIGHT_FADE_PARITY",
+      "off": 684,
+      "n_disp32_hits": 38,
+      "verdict": "OK",
+      "reason": "38 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_HEALTH",
+      "off": 804,
+      "n_disp32_hits": 181,
+      "verdict": "OK",
+      "reason": "181 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_TEAM",
+      "off": 820,
+      "n_disp32_hits": 220,
+      "verdict": "OK",
+      "reason": "220 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_SQUAD",
+      "off": 832,
+      "n_disp32_hits": 901,
+      "verdict": "OK",
+      "reason": "901 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_MAX_HEALTH",
+      "off": 1128,
+      "n_disp32_hits": 226,
+      "verdict": "OK",
+      "reason": "226 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_NAME",
+      "off": 1145,
+      "n_disp32_hits": 27,
+      "verdict": "OK",
+      "reason": "27 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_LIFE_STATE",
+      "off": 1680,
+      "n_disp32_hits": 301,
+      "verdict": "OK",
+      "reason": "301 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_STUDIO_HDR",
+      "off": 4096,
+      "n_disp32_hits": 673,
+      "verdict": "OK",
+      "reason": "673 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_BONES",
+      "off": 3584,
+      "n_disp32_hits": 28,
+      "verdict": "OK",
+      "reason": "28 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_SURVIVAL_ITEM_ID",
+      "off": 5604,
+      "n_disp32_hits": 52,
+      "verdict": "OK",
+      "reason": "52 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_WEAPON_NAME_STR",
+      "off": 6328,
+      "n_disp32_hits": 21,
+      "verdict": "OK",
+      "reason": "21 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_DECOY_FLAGS",
+      "off": 6436,
+      "n_disp32_hits": 37,
+      "verdict": "OK",
+      "reason": "37 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_WEAPON_HANDLE",
+      "off": 6612,
+      "n_disp32_hits": 14,
+      "verdict": "OK",
+      "reason": "14 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_LAST_VISIBLE_TIME",
+      "off": 6772,
+      "n_disp32_hits": 4,
+      "verdict": "OK",
+      "reason": "4 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_LAST_AIMED_AT_TIME",
+      "off": 6780,
+      "n_disp32_hits": 4,
+      "verdict": "OK",
+      "reason": "4 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_ZOOMING",
+      "off": 7361,
+      "n_disp32_hits": 39,
+      "verdict": "OK",
+      "reason": "39 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_CAMERA_ORIGIN",
+      "off": 8148,
+      "n_disp32_hits": 12,
+      "verdict": "OK",
+      "reason": "12 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_PUNCH_WEAPON_ANGLE",
+      "off": 9512,
+      "n_disp32_hits": 19,
+      "verdict": "OK",
+      "reason": "19 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_VIEW_ANGLES",
+      "off": 9744,
+      "n_disp32_hits": 48,
+      "verdict": "OK",
+      "reason": "48 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_BLEEDOUT_STATE",
+      "off": 10208,
+      "n_disp32_hits": 8,
+      "verdict": "OK",
+      "reason": "8 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_ENT_ARMOR_TYPE",
+      "off": 18556,
+      "n_disp32_hits": 1,
+      "verdict": "WEAK",
+      "reason": "only 1 disp32 hits"
+    },
+    {
+      "name": "APEX_WEP_BULLET_INHERIT_OWNER",
+      "off": 10428,
+      "n_disp32_hits": 4,
+      "verdict": "OK",
+      "reason": "4 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_WEP_BULLET_SPEED",
+      "off": 10440,
+      "n_disp32_hits": 7,
+      "verdict": "OK",
+      "reason": "7 disp32 hits >= 3"
+    },
+    {
+      "name": "APEX_WEP_BULLET_GRAVITY_SCALE",
+      "off": 10448,
+      "n_disp32_hits": 10,
+      "verdict": "OK",
+      "reason": "10 disp32 hits >= 3"
+    }
+  ],
+  "text_functions": [
+    {
+      "name": "APEX_OFF_RENDER_GATE_FN",
+      "rva": 8484080,
+      "actual_le64": "0x91B60F4408EC8348",
+      "actual_bytes": "4883ec08440fb691",
+      "verdict": "OK",
+      "reason": "prologue matches canon"
+    },
+    {
+      "name": "APEX_FPS_PRINTF_RVA",
+      "rva": 6235184,
+      "actual_le64": "0x4C894C182444894C",
+      "actual_bytes": "4c894424184c894c",
+      "verdict": "OK",
+      "reason": "prologue matches canon"
+    }
+  ],
+  "rdata_pointers": [
+    {
+      "name": "APEX_FPS_FMT_RVA",
+      "rva": 25276704,
+      "sample": "%3i fps -- inp(%3.1f) sv(%3.1f) cl(%3.1f) render(%3.1f) snd(%3.1f) cl_dll(%3.1f)",
+      "verdict": "OK"
+    }
+  ]
+}

@@ -5,7 +5,7 @@
 - Stage 0 survivors: `12`
 - Stage A hits: `0`
 - Stage A' hits: `0`
-- Stage A'' (drains): scanned `11` -> `0` matches (VG1=0 VGV=0 VG2=0 VGQ=0)
+- Stage A'' (drains): scanned `13` -> `0` matches (VG1=0 VGV=0 VG2=0 VGQ=0)
 - Stage B scored candidates: `12`
 - Operator decision: **`hold_fail_closed`**
 - Confidence: `low`
@@ -30,11 +30,11 @@
 ## Stage A'' (drain markers)
 
 - Drains dir: `/srv/nfs/shared/Shared/SCA/drains`
-- Drains scanned: `11`
+- Drains scanned: `13`
 - Drains with VGUI markers: `0`
 - Drains targeting our iface: `0`
 - Total markers: VG1=`0` VGV=`0` VG2=`0` VGQ=`0`
-- Runtime base used for normalization: `0x7FF659A67000`
+- Runtime base used for normalization: `0x0`
 
 ## Stage B ranking
 

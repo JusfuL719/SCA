@@ -106,9 +106,12 @@ volatile GLOW_PARAMS_RT gGlowParams = {
     .SquadGlow = 0, .SquadSlot = (UINT8)APEX_SLOT_SQUAD
 };
 
+// StableNeed lowered 8->2 for bring-up (cycle 12b): with VG1/VGV emit gate
+// at every-4 ticks (see VguiProbeTick), VG2 fires after ~8s of in-match
+// render at 0.65 Hz NPF instead of ~50s. Tighten back to 8 once arming.
 volatile VGUI_DRAW_RT gVguiDrawParams = {
     .Enabled = 0, .ProbeOnly = 1, .DryRunArm = 0, .Rollback = 1,
-    .FailClosed = 1, .StableNeed = 8, .MaxFaults = 4,
+    .FailClosed = 1, .StableNeed = 2, .MaxFaults = 4,
     .CandidateGlobalRva = 0, .SlotDrawText = 0, .SlotSetTextPos = 0,
     .SlotSetTextColor = 0, .SlotSetFont = 0,
     .TextX = 960, .TextY = 120, .TextRgba = 0xFFFFFFFFU,
@@ -918,7 +921,9 @@ static VOID VguiProbeTick(UINT64 Cr3, UINT64 ImageBase, UINT64 Fired) {
     P->LastVtable = Vtable;
     P->LastDrawFn = DrawFn;
 
-    if ((Fired & 0x1F) == 0) {
+    // Cycle 12b: emit every 4 ticks (was every 32) for bring-up diagnostics.
+    // At 0.65 Hz NPF, every-32 = first VG1 ~50s in; every-4 = ~6s.
+    if ((Fired & 0x3) == 0) {
         HvLogHex("VG1", Iface);
         HvLogHex("VGV", Vtable);
     }

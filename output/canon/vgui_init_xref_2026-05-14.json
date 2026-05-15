@@ -1308,9 +1308,12 @@
   },
   "stageA_prime_prime": {
     "drains_dir": "/srv/nfs/shared/Shared/SCA/drains",
-    "drains_scanned": 11,
+    "drains_scanned": 13,
     "drains_with_vgui_markers": 0,
     "drains_targeting_iface": 0,
+    "drains_with_lpb_base": 0,
+    "drains_using_fallback_base": 0,
+    "per_drain_summary": [],
     "vtable_va_to_drain": {},
     "vtable_rva_matches": [],
     "candidate_set": [],
@@ -1318,7 +1321,9 @@
     "total_vgv": 0,
     "total_vg2": 0,
     "total_vgq": 0,
-    "runtime_base_used": 140696042762240
+    "total_lpb": 102,
+    "fallback_runtime_base": 140696042762240,
+    "apex_local_player_off_used": 64434456
   },
   "stageB": {
     "candidate_set": [
