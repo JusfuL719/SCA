@@ -780,7 +780,7 @@ static VOID RenderGlow(UINT64 Cr3, UINT64 ImageBase) {
     if (EFI_ERROR(HsSt) || HighlightSettings < 0x10000) return;
 
     InitHighlightSlot(Cr3, HighlightSettings, APEX_SLOT_PLAYER,
-                       APEX_F32_ONE,     APEX_F32_ZERO,    APEX_F32_ZERO);
+                       APEX_F32_ONE,     APEX_F32_ONE,     APEX_F32_ZERO);
     InitHighlightSlot(Cr3, HighlightSettings, APEX_SLOT_SQUAD,
                        APEX_F32_ONE,     APEX_F32_ONE,     APEX_F32_ZERO);  // yellow — squad distinct from enemy
     InitHighlightSlot(Cr3, HighlightSettings, APEX_SLOT_LOOT_MYTHIC,

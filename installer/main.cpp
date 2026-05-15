@@ -52,6 +52,8 @@ static inline uint64_t MakeRenderArg1(uint16_t dur, uint16_t xq8, uint16_t yq8,
 }
 #define PMC_CMD_VIRT_READ8         0x31
 #define PMC_CMD_VIRT_WRITE4        0x32
+#define PMC_CMD_VIRT_WRITE8        0x33
+#define PMC_CMD_VIRT_WRITE1        0x35
 
 #define HYPE_MEM_OK                0
 
@@ -174,6 +176,16 @@ struct Args {
     // --find-ptr <heap_va> — scan .data (12 MB raw) via BulkVirtRead8 for any
     // 8-byte qword matching the target VA. Prints all matching RVAs.
     uint64_t    find_ptr_target     = 0;
+    // --scan-mem-for <ASCII> <start_va> <size_mb> — sparse-tolerant byte
+    // scan via BulkVirtRead8. Prints VA of every hit. For heap-name hunt.
+    const char* scan_mem_for_str    = nullptr;
+    uint64_t    scan_mem_for_start  = 0;
+    uint64_t    scan_mem_for_mb     = 0;
+    // --write-string-at <VA> <ASCII> — direct VIRT_WRITE8/4/1 at any guest
+    // VA. No TTL, no SetSink restore — write stays until something else
+    // (engine or HV) overwrites. For sentinel-testing heap candidates.
+    uint64_t    write_string_va     = 0;
+    const char* write_string_text   = nullptr;
 };
 
 static uint64_t ParseHex(const char* s) {
@@ -321,6 +333,17 @@ static Args ParseArgs(int argc, char** argv) {
             a.find_ptr_target = ParseHex(argv[++i]);
             continue;
         }
+        if (std::strcmp(f, "--scan-mem-for") == 0 && need(i, 3)) {
+            a.scan_mem_for_str   = argv[++i];
+            a.scan_mem_for_start = ParseHex(argv[++i]);
+            a.scan_mem_for_mb    = ParseHex(argv[++i]);
+            continue;
+        }
+        if (std::strcmp(f, "--write-string-at") == 0 && need(i, 2)) {
+            a.write_string_va   = ParseHex(argv[++i]);
+            a.write_string_text = argv[++i];
+            continue;
+        }
     }
     return a;
 }
@@ -331,7 +354,12 @@ static constexpr uint64_t kSecTextSz    = 0x014A1000ULL;
 static constexpr uint64_t kSecRdataRva  = 0x014A2000ULL;
 static constexpr uint64_t kSecRdataSz   = 0x0068E000ULL;
 static constexpr uint64_t kSecDataRva   = 0x01B30000ULL;
-static constexpr uint64_t kSecDataSz    = 0x00CA1000ULL;
+// .data on disk is 0x00CA1000; runtime BSS extension carries it past
+// VGUI iface cluster (rank-3 at 0x03EBD4C0). Cover through 0x04000000
+// image-relative so probe_vgui_surface.py can validate iface cells.
+// Sparse dumper zero-fills unmapped pages — required because BSS is
+// allocate-on-touch, not all pages resident in steady state.
+static constexpr uint64_t kSecDataSz    = 0x024D0000ULL;  // 0x04000000 - kSecDataRva
 
 static void Log(const Args& a, const char* fmt, ...) {
     if (!a.verbose) return;
@@ -553,6 +581,70 @@ static bool DumpGuestRange(covert::Channel& ch, uint64_t base_va,
     return true;
 }
 
+// Page-granular dump that tolerates unmapped BSS holes. Per 4 KB page,
+// any qword that fails VIRT_READ8 (BAD_ADDR) is written as 0 — matches
+// process semantics (BSS pages read as 0 until touched). Caller uses
+// this for .data ranges that extend into BSS; .text / .rdata must use
+// the strict variant above.
+static bool DumpGuestRangeSparse(covert::Channel& ch, uint64_t base_va,
+                                  uint64_t size_bytes, const char* filepath) {
+    FILE* f = std::fopen(filepath, "wb");
+    if (!f) {
+        std::printf("[FAIL] fopen(\"%s\") errno\n", filepath);
+        return false;
+    }
+    constexpr uint64_t kPageBytes   = 4096;
+    constexpr uint32_t kPageQwords  = kPageBytes / 8;  // 512
+    uint64_t buf[kPageQwords];
+
+    uint64_t off = 0;
+    uint64_t pages_full = 0, pages_partial = 0, pages_zero = 0;
+
+    while (off < size_bytes) {
+        const uint64_t remaining = size_bytes - off;
+        const uint64_t this_page = (remaining >= kPageBytes)
+                                   ? kPageBytes
+                                   : (remaining & ~7ULL);  // qword-aligned tail
+        if (this_page == 0) break;
+        const uint32_t n_qw = static_cast<uint32_t>(this_page / 8);
+
+        std::memset(buf, 0, sizeof(buf));
+        const uint32_t got = ch.BulkVirtRead8(base_va + off, buf, n_qw);
+        // buf[got..n_qw) stays 0 from memset — that's our zero-fill.
+
+        if (std::fwrite(buf, 8, n_qw, f) != n_qw) {
+            std::printf("[FAIL] fwrite \"%s\" off=0x%llX\n",
+                        filepath,
+                        static_cast<unsigned long long>(off));
+            std::fclose(f);
+            return false;
+        }
+        if (got == n_qw)        pages_full++;
+        else if (got == 0)      pages_zero++;
+        else                    pages_partial++;
+        off += this_page;
+    }
+
+    // Sub-qword tail (rare): zero-fill, can't VIRT_READ8 < 8B anyway.
+    if (off < size_bytes) {
+        const size_t rem = static_cast<size_t>(size_bytes - off);
+        const uint64_t z = 0;
+        if (std::fwrite(&z, 1, rem, f) != rem) {
+            std::fclose(f);
+            return false;
+        }
+    }
+
+    std::fclose(f);
+    std::printf("  sparse: %llu full / %llu partial / %llu zero pages "
+                "(%llu MB total)\n",
+                (unsigned long long)pages_full,
+                (unsigned long long)pages_partial,
+                (unsigned long long)pages_zero,
+                (unsigned long long)(size_bytes / (1024 * 1024)));
+    return true;
+}
+
 static int RunLiveMemdump(covert::Channel& ch, Args& args) {
     Log(args,
         "[OK] live-memdump starting (NO HOOK_INSTALL — read-only VIRT)\n");
@@ -588,8 +680,8 @@ static int RunLiveMemdump(covert::Channel& ch, Args& args) {
     std::printf("  rdata -> %s\n", path);
 
     if (!path_ok("r5apex_live_data.bin") ||
-        !DumpGuestRange(ch, args.module_base + kSecDataRva, kSecDataSz,
-                       path, args))
+        !DumpGuestRangeSparse(ch, args.module_base + kSecDataRva,
+                              kSecDataSz, path))
         return 55;
     std::printf("  data -> %s\n", path);
 
@@ -828,6 +920,187 @@ static int RunFindPtr(covert::Channel& ch, Args& args) {
         (void)got;
     }
     std::printf("=== DONE: %u matches in %u batches ===\n", n_match, batches_done);
+    return 0;
+}
+
+// --scan-mem-for <ASCII> <start_va> <size_mb> — sparse-tolerant byte scan
+// across [start_va, start_va + size_mb*1MB) via BulkVirtRead8. Prints VA of
+// every chunk that contains the needle as a substring (chunk-granular, may
+// miss matches that straddle 80-qword boundaries; rare enough to ignore
+// at ASCII-name granularity).
+//
+// Designed for heap-name hunts: feed it a PEB.ProcessHeaps base + a generous
+// size, look for short ASCII patterns. Sparse — unmapped pages just return
+// 0 and the loop advances.
+static int RunScanMemFor(covert::Channel& ch, Args& args) {
+    if (!args.scan_mem_for_str || args.scan_mem_for_str[0] == '\0') {
+        std::printf("[FAIL] --scan-mem-for needs <ASCII> <start_va> <size_mb>\n");
+        return 80;
+    }
+    if (args.scan_mem_for_mb == 0) {
+        std::printf("[FAIL] --scan-mem-for size_mb must be > 0\n");
+        return 81;
+    }
+    if (!RecoverPhase4Cr3(ch, args)) return 82;
+    if (!HvCommitTargetCr3(ch, args, args.target_cr3)) return 83;
+
+    const char* needle = args.scan_mem_for_str;
+    const size_t needle_len = std::strlen(needle);
+    if (needle_len == 0 || needle_len > 32) {
+        std::printf("[FAIL] needle len must be 1..32, got %zu\n", needle_len);
+        return 84;
+    }
+
+    const uint64_t start = args.scan_mem_for_start;
+    const uint64_t size  = args.scan_mem_for_mb * (uint64_t)(1024 * 1024);
+    constexpr uint32_t kBatch = 80;  // 80 qwords = 640 bytes per NPF
+    constexpr uint32_t kBatchBytes = kBatch * 8;
+    const uint64_t total_qwords = size / 8;
+    const uint64_t total_batches = (total_qwords + kBatch - 1) / kBatch;
+
+    std::printf("=== SCAN-MEM-FOR \"%s\" (%zu bytes) "
+                "[0x%016llX..0x%016llX) %llu MB ===\n",
+                needle, needle_len,
+                (unsigned long long)start,
+                (unsigned long long)(start + size),
+                (unsigned long long)args.scan_mem_for_mb);
+
+    // Overlapping window: keep last (needle_len-1) bytes of prior batch so
+    // matches straddling 640-byte chunks still land. Skip if prior batch
+    // got=0 (unmapped — gap can't contain a match anyway).
+    uint64_t buf[kBatch] = {};
+    uint8_t  prev_tail[64] = {0};
+    uint32_t prev_tail_len = 0;
+    uint32_t n_match = 0;
+    uint64_t batches_done = 0;
+    uint64_t pages_mapped = 0, pages_zero = 0;
+
+    for (uint64_t off = 0; off < total_qwords; off += kBatch) {
+        const uint32_t n = (uint32_t)((total_qwords - off) > kBatch
+                                       ? kBatch : (total_qwords - off));
+        const uint64_t va = start + off * 8;
+        std::memset(buf, 0, sizeof(buf));
+        const uint32_t got = ch.BulkVirtRead8(va, buf, n);
+
+        if (got > 0) {
+            pages_mapped++;
+            // Build a search window = prev_tail || got bytes.
+            uint8_t window[64 + kBatchBytes];
+            std::memcpy(window, prev_tail, prev_tail_len);
+            const uint32_t got_bytes = got * 8;
+            std::memcpy(window + prev_tail_len, buf, got_bytes);
+            const uint32_t window_len = prev_tail_len + got_bytes;
+
+            // Naive memmem.
+            for (uint32_t i = 0; i + needle_len <= window_len; ++i) {
+                if (std::memcmp(window + i, needle, needle_len) == 0) {
+                    // Match VA: va corresponds to (prev_tail_len) in window,
+                    // so the match offset within current batch is (i - prev_tail_len).
+                    const int64_t batch_off = (int64_t)i - (int64_t)prev_tail_len;
+                    const uint64_t match_va = va + (uint64_t)batch_off;
+                    std::printf("  MATCH va=0x%016llX\n",
+                                (unsigned long long)match_va);
+                    n_match++;
+                }
+            }
+
+            // Stash tail for next iteration overlap.
+            const uint32_t tail = (needle_len > 0) ? (uint32_t)(needle_len - 1) : 0;
+            const uint32_t stash = (tail > got_bytes) ? got_bytes : tail;
+            std::memcpy(prev_tail, (uint8_t*)buf + got_bytes - stash, stash);
+            prev_tail_len = stash;
+        } else {
+            pages_zero++;
+            // Unmapped — drop the tail so the next mapped chunk doesn't
+            // splice across a hole and emit phantom hits.
+            prev_tail_len = 0;
+        }
+        batches_done++;
+        if ((batches_done & 0x1FFF) == 0) {
+            std::printf("  ... %llu/%llu batches "
+                        "(%llu MB scanned, %llu mapped / %llu zero), "
+                        "matches=%u\n",
+                        (unsigned long long)batches_done,
+                        (unsigned long long)total_batches,
+                        (unsigned long long)(batches_done * (uint64_t)kBatchBytes / (1024 * 1024)),
+                        (unsigned long long)pages_mapped,
+                        (unsigned long long)pages_zero,
+                        n_match);
+        }
+        (void)got;
+    }
+    std::printf("=== DONE: %u matches in %llu batches "
+                "(%llu mapped / %llu zero) ===\n",
+                n_match,
+                (unsigned long long)batches_done,
+                (unsigned long long)pages_mapped,
+                (unsigned long long)pages_zero);
+    return 0;
+}
+
+// --write-string-at <VA> <ASCII> — direct write via VIRT_WRITE8/4/1.
+// No TTL, no sink-restore. Operator-driven sentinel placement at any guest
+// VA (heap, image, BSS) for visible-paint testing.
+static int RunWriteStringAt(covert::Channel& ch, Args& args) {
+    if (args.write_string_va == 0 || !args.write_string_text) {
+        std::printf("[FAIL] --write-string-at needs <VA> <TEXT>\n");
+        return 90;
+    }
+    if (!RecoverPhase4Cr3(ch, args)) return 91;
+    if (!HvCommitTargetCr3(ch, args, args.target_cr3)) return 92;
+
+    const uint64_t va  = args.write_string_va;
+    const char* text   = args.write_string_text;
+    const size_t tlen  = std::strlen(text);
+    if (tlen == 0 || tlen > 64) {
+        std::printf("[FAIL] text len 1..64, got %zu\n", tlen);
+        return 93;
+    }
+
+    // Pack into NUL-terminated buffer.
+    uint8_t buf[80] = {0};
+    std::memcpy(buf, text, tlen);
+    const size_t total = tlen + 1;  // include trailing NUL
+
+    // Write in 8/4/1 byte chunks via VIRT_WRITE8/4/1.
+    size_t off = 0;
+    while (off < total) {
+        const size_t left = total - off;
+        uint64_t r = 0;
+        if (left >= 8) {
+            uint64_t qw = 0;
+            std::memcpy(&qw, buf + off, 8);
+            const uint32_t s = ch.Fire(PMC_CMD_VIRT_WRITE8, va + off, qw, 0, &r);
+            if (s != covert::kStatusOk) {
+                std::printf("[FAIL] VIRT_WRITE8 @0x%llX status=%u\n",
+                            (unsigned long long)(va + off), s);
+                return 94;
+            }
+            off += 8;
+        } else if (left >= 4) {
+            uint32_t dw = 0;
+            std::memcpy(&dw, buf + off, 4);
+            const uint32_t s = ch.Fire(PMC_CMD_VIRT_WRITE4, va + off,
+                                       (uint64_t)dw, 0, &r);
+            if (s != covert::kStatusOk) {
+                std::printf("[FAIL] VIRT_WRITE4 @0x%llX status=%u\n",
+                            (unsigned long long)(va + off), s);
+                return 95;
+            }
+            off += 4;
+        } else {
+            const uint32_t s = ch.Fire(PMC_CMD_VIRT_WRITE1, va + off,
+                                       (uint64_t)buf[off], 0, &r);
+            if (s != covert::kStatusOk) {
+                std::printf("[FAIL] VIRT_WRITE1 @0x%llX status=%u\n",
+                            (unsigned long long)(va + off), s);
+                return 96;
+            }
+            off += 1;
+        }
+    }
+    std::printf("WROTE \"%s\" (%zu bytes incl NUL) at 0x%016llX\n",
+                text, total, (unsigned long long)va);
     return 0;
 }
 
@@ -1101,6 +1374,12 @@ int main(int argc, char** argv) {
     // --find-ptr <VA> — scan .data for any qword matching the target VA.
     if (args.find_ptr_target != 0)
         return RunFindPtr(ch, args);
+
+    if (args.scan_mem_for_str != nullptr)
+        return RunScanMemFor(ch, args);
+
+    if (args.write_string_va != 0)
+        return RunWriteStringAt(ch, args);
 
     // --peek-va: generic 4-qword VIRT_READ8 dump at VA.
     if (args.peek_va != 0) {
