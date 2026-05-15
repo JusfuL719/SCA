@@ -19,13 +19,13 @@ installer/
 
 ## Modes
 
-≤1s = honors the "sca-svc.exe exits ≤1 sec after HV ack" rule. Stays-up = intentionally violates it (RE / live drain).
+≤1s = honors the "SCAhost.exe exits ≤1 sec after HV ack" rule. Stays-up = intentionally violates it (RE / live drain).
 
 | Mode | argv | ≤1s? | What it does |
 |---|---|---|---|
 | `--live-memdump <dir>` | `-v [--peb 0x…]` | minutes | HANDSHAKE→SET_EPROCESS→NPT→Phase-4 CR3→SET_CR3 → stream **`.text` / `.rdata` / `.data`** into `dir\r5apex_live_*.bin` via `BulkVirtRead8` only (**never** runs `PMC_CMD_HOOK_INSTALL_DRAW`). Section RVAs mirror `UNICORN_DUMPER/redump.sh`; adjust `kSec*` constants if a patch reshapes PE. Use this when hook RVA drift would CTD Apex. |
 | install (default) | `--rva 0x… [--module-base …] [--target-cr3 …] [--peb …]` + optional `--glow-*` | yes | HANDSHAKE → SET_EPROCESS → NPT_CHANNEL_INIT → CR3 recovery (skip with `--no-recover`) → batched **SET_CR3 + HOOK_INSTALL_DRAW + HOOK_DRAW_PEEK + optional SET_GLOW_PARAMS in one mailbox round trip** → exit |
-| `--reconfig` | `--glow-*` knobs (slot/mask/filter/enabled/vis-type/glow-fix/write-vistype/write-glowfix) | yes | Push gGlowParams on already-armed HV (no install). |
+| `--reconfig` | `--glow-*` knobs (slot/mask/filter/enabled/vis-type/glow-fix/write-vistype/write-glowfix/squad-glow) | yes | Push gGlowParams on already-armed HV (no install). |
 | `--drain` | `[--drain-out path]` | stays up ~seconds | Pull 4 MB HV ring via `PMC_CMD_HV_LOG_READ`. Writes `hypedbg-live-<tsc>.bin`. HV keeps running. |
 | `--diag-m0f` | — | yes | Read `PMC_CMD_GET_LAPIC_DISARMED_NPF_COUNT` (cycle 15 disarmed-LAPIC-NPF counter) and print. |
 | `--drift-check` | `--module-base 0x…` | yes | Sanity-check the canonical `UNICORN_DUMPER/OFFSETS.md` pins (BucketTable_Ptr, BucketCount, SetHighlightId prologue) still resolve against the live Apex binary. One scatter VIRT_READ8 batch. Replaces the retired exhaustive RE probes. |

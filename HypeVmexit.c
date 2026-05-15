@@ -4,6 +4,7 @@
 #include "HypeDebug.h"
 #include "HypeHookDraw.h"
 #include "HypeMenu.h"
+#include "HypeRender.h"
 
 extern DRIVER_CONTEXT g_DriverContext;
 extern UINT64 gHypeLoaderImageBase;
@@ -1770,6 +1771,153 @@ HandleNpf(
             case PMC_CMD_GET_LAPIC_DISARMED_NPF_COUNT: {
                 CmdResult = (UINT64)__atomic_load_n(&gLapicDisarmedNpfCount,
                                                    __ATOMIC_RELAXED);
+                CmdStatus = COVERT_STATUS_OK;
+                break;
+            }
+
+            // Push a text entry into the HV-side render queue.
+            // Arg1: packed (duration[15:0] x_q8[31:16] y_q8[47:32] color[55:48] flags[63:56]).
+            // Arg2: guest VA (in caller's locked memory) of null-terminated string ≤63 chars.
+            // HV copies the string immediately; caller may free the buffer after Fire() returns.
+            case PMC_CMD_RENDER_TEXT: {
+                UINT64 Arg1      = Cmd->Arg1;
+                UINT64 StringGva = Cmd->Arg2;
+                if (StringGva == 0) { CmdStatus = COVERT_STATUS_BAD_ADDR; break; }
+
+                UINT16 Duration = RENDER_ARG1_DURATION(Arg1);
+                UINT16 XQ8      = RENDER_ARG1_XQ8(Arg1);
+                UINT16 YQ8      = RENDER_ARG1_YQ8(Arg1);
+                UINT8  ColorIdx = RENDER_ARG1_COLOR(Arg1);
+                UINT8  Flags    = RENDER_ARG1_FLAGS(Arg1);
+                if (Duration == 0) Duration = 1;
+
+                // Limit read to bytes remaining in the page so ReadGuestPhysical
+                // (max PAGE_SIZE_4KB) is never asked to cross a page boundary.
+                UINT32 PageRem = (UINT32)(PAGE_SIZE_4KB -
+                                         (StringGva & (PAGE_SIZE_4KB - 1)));
+                UINT32 ReadLen = (PageRem < 64u) ? PageRem : 64u;
+
+                char TextBuf[64];
+                SetMem(TextBuf, sizeof(TextBuf), 0);
+                if (EFI_ERROR(ReadGuestVirtual(SnapClientCr3, StringGva,
+                                               TextBuf, ReadLen))) {
+                    CmdStatus = COVERT_STATUS_BAD_ADDR;
+                    break;
+                }
+                TextBuf[63] = '\0';
+
+                CmdStatus = HypeRenderPush(TextBuf, (UINT32)Duration,
+                                           XQ8, YQ8, ColorIdx, Flags);
+                CmdResult = (CmdStatus == COVERT_STATUS_OK) ? 1u : 0u;
+                break;
+            }
+
+            // Zero all render slots immediately.
+            case PMC_CMD_RENDER_CLEAR: {
+                HypeRenderClear();
+                CmdResult = 1;
+                break;
+            }
+
+            // Box-scan mode toggle / capture retrieval.
+            // Arg1: 0=STOP / 1=START / 2=GET captured ent VA (cleared on read).
+            case PMC_CMD_SCAN_BOX: {
+                UINT64 SubOp = Cmd->Arg1;
+                if (SubOp == 0 || SubOp == 1) {
+                    BoxScanSetMode((UINT8)SubOp);
+                    CmdResult = SubOp;
+                } else if (SubOp == 2) {
+                    CmdResult = BoxScanGetCaptured();
+                } else {
+                    CmdStatus = COVERT_STATUS_BAD_CMD;
+                }
+                break;
+            }
+
+            // Atomic sink-override transition for sentinel-test iteration.
+            // Arg1 = new sink RVA (0 → revert to canon APEX_FPS_FMT_RVA).
+            // Arg2 = new sink max len in bytes (0 → revert to canon length).
+            // Arg3 = indirect-deref offset (rev-4). 0 = direct write at
+            //        ImageBase+RVA (legacy behavior). Non-zero = HV reads
+            //        a 64-bit pointer cell at ImageBase+RVA+Arg3 and uses
+            //        the result as the sink VA. Use for ConVar pszString
+            //        slots (Source layout: +0x40 of struct).
+            // HypeRenderSetSink restores the current sink synchronously
+            // before flipping override + invalidating backup.
+            case PMC_CMD_RENDER_SET_SINK: {
+                UINT64 NewRva = Cmd->Arg1;
+                UINT32 NewLen = (UINT32)(Cmd->Arg2 & 0xFFFFFFFFu);
+                UINT32 IndirectOff = (UINT32)(Cmd->Arg3 & 0xFFFFFFFFu);
+                CmdStatus = HypeRenderSetSink(Vcpu->TargetCr3,
+                                              Vcpu->Cr3InterceptCapturedImageBase,
+                                              NewRva, NewLen, IndirectOff);
+                CmdResult = (CmdStatus == COVERT_STATUS_OK) ? 1u : 0u;
+                break;
+            }
+
+            // RDMSR-paired RDTSC timing measurement. Arg1 = MSR# (any
+            // legal MSR — interesting ones are SCA-shadowed: EFER
+            // 0xC0000080, VM_CR 0xC0010114, VM_HSAVE_PA 0xC0010117).
+            // Loops 1024 RDMSR calls with RDTSC pairing, computes
+            // min/avg/max. Result = (min<<32) | avg_cycles. Arg2-back =
+            // max cycles. Source for hyperjacking_2026_state.md §6.2.2.
+            //
+            // IMPORTANT: this handler runs in HOST VMEXIT context. RDMSR
+            // here is NATIVE (host can read all MSRs without intercept).
+            // So this measures the BARE-METAL BASELINE for the given MSR
+            // — useful as the denominator in the "<2-3x" decision rule.
+            // The guest-trip cost (what an AC RDTSC-pair around RDMSR
+            // from kernel mode would actually see) is approximately
+            // baseline + 2*~700 cy VMEXIT roundtrip + handler-resident
+            // shadow code. The guest-trip cost requires a kernel-mode
+            // probe (driver or in-OS measurement) which SCA does not
+            // ship — TODO: add a small WDM probe driver for the full
+            // measurement. For now, this handler establishes the
+            // baseline so the comparison is unambiguous when the
+            // guest-side number arrives.
+            case PMC_CMD_DIAG_MSR_TIMING: {
+                UINT32 MsrId = (UINT32)(Cmd->Arg1 & 0xFFFFFFFFu);
+                UINT32 N = 1024;
+                UINT64 Min = ~0ULL;
+                UINT64 Max = 0;
+                UINT64 Sum = 0;
+                for (UINT32 i = 0; i < N; i++) {
+                    UINT32 LoT0, HiT0, LoT1, HiT1;
+                    UINT32 LoVal, HiVal;
+                    __asm__ __volatile__(
+                        "rdtsc\n\t"
+                        "mov %%eax, %0\n\t"
+                        "mov %%edx, %1\n\t"
+                        "mov %4, %%ecx\n\t"
+                        "rdmsr\n\t"
+                        "mov %%eax, %2\n\t"
+                        "mov %%edx, %3\n\t"
+                        : "=m"(LoT0), "=m"(HiT0), "=m"(LoVal), "=m"(HiVal)
+                        : "m"(MsrId)
+                        : "rax", "rcx", "rdx", "memory"
+                    );
+                    __asm__ __volatile__(
+                        "rdtsc\n\t"
+                        "mov %%eax, %0\n\t"
+                        "mov %%edx, %1\n\t"
+                        : "=m"(LoT1), "=m"(HiT1)
+                        :
+                        : "rax", "rdx", "memory"
+                    );
+                    (VOID)LoVal; (VOID)HiVal;
+                    UINT64 T0 = ((UINT64)HiT0 << 32) | LoT0;
+                    UINT64 T1 = ((UINT64)HiT1 << 32) | LoT1;
+                    UINT64 D  = T1 - T0;
+                    if (D < Min) Min = D;
+                    if (D > Max) Max = D;
+                    Sum += D;
+                }
+                UINT64 Avg = Sum / N;
+                CmdResult = (Min << 32) | (Avg & 0xFFFFFFFFu);
+                Cmd->Arg2 = Max;
+                HvLogHex("DMM", (UINT64)MsrId);
+                HvLogHex("DMA", Avg);
+                HvLogHex("DMX", Max);
                 CmdStatus = COVERT_STATUS_OK;
                 break;
             }

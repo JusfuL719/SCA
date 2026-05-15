@@ -41,6 +41,25 @@ typedef struct _NPT_CONTEXT NPT_CONTEXT, *PNPT_CONTEXT;
 #define PMC_CMD_VIRT_CALL         0x20
 #define PMC_CMD_SET_AIM_PARAMS    0x21
 #define PMC_CMD_SET_MENU_ENABLE   0x22
+// Render queue — Phase 1: BackendNone (log-only). Phase 2+: string-hijack / vgui.
+// RENDER_TEXT Arg1 = packed (duration[15:0], x_q8[31:16], y_q8[47:32], color[55:48], flags[63:56])
+//             Arg2 = guest VA of null-terminated string (≤63 chars, in caller's locked memory).
+// RENDER_CLEAR zeroes all 8 render slots.
+// RENDER_SET_SINK Arg1 = sink RVA (0 → revert to canon APEX_FPS_FMT_RVA).
+//                 Arg2 = sink max length in bytes (0 → revert to canon APEX_FPS_FMT_LEN; capped at 256).
+//                 Atomic transition: restores current sink first, drops backup, then swaps override.
+//                 Used by --render-sink iteration loop during convar candidate sentinel-test.
+// DIAG_MSR_TIMING Arg1 = MSR# to probe (RDMSR-paired with RDTSC, N=1000 reads).
+//                  Result = (min<<32)|avg cycles; Arg2-back = p99 cycles. Source for §6.2.2 measurement.
+#define PMC_CMD_RENDER_TEXT       0x29
+#define PMC_CMD_RENDER_CLEAR      0x2A
+#define PMC_CMD_RENDER_SET_SINK   0x2B
+#define PMC_CMD_DIAG_MSR_TIMING   0x2C
+// Box-scan mode — temporary widening of ScanOneEntity to log unknown class
+// names + any entity whose +0x1660 holds ASCII text (deathbox candidate).
+// Arg1: 0=STOP / 1=START / 2=GET captured box ent VA in Result.
+// Used by --scan-box to discover deathbox entity VAs without userland walks.
+#define PMC_CMD_SCAN_BOX          0x2D
 
 #define PMC_CMD_NPT_CHANNEL_INIT 0x50
 

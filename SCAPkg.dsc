@@ -32,5 +32,5 @@
   GCC:*_*_X64_DLINK_FLAGS = -fno-lto
 
 [Components]
-  SCAPkg/PlatformInit.inf
-  SCAPkg/HypeDrain.inf
+  PlatformInit.inf
+  HypeDrain.inf

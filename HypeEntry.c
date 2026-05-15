@@ -230,28 +230,47 @@ HypeLoaderEntry(
     HvLog("EBP\n");
     Print(L"[HYPE] init OK\r\n");
 
+    NTSTATUS BspStatus;
     {
-        NTSTATUS BspStatus = HypeStartBsp();
+        BspStatus = HypeStartBsp();
         if (BspStatus == 0) {
             HvLog("E66\n");
+            Print(L"[HYPE] BSP virtualized\r\n");
         } else {
             HvLog("E67\n");
             HvLogHex("E68", (UINT64)BspStatus);
+            Print(L"[HYPE] FAIL: BSP virt 0x%lx\r\n", (UINT64)BspStatus);
         }
     }
 
+    NTSTATUS ApStatus;
     {
-        NTSTATUS ApStatus = LaunchAllAPs();
+        ApStatus = LaunchAllAPs();
         if (ApStatus == 0) {
             HvLog("E63\n");
+            Print(L"[HYPE] APs virtualized (%d CPUs total)\r\n",
+                  (UINT32)gUefiHvContext.NumProcessors);
         } else {
             HvLog("E64\n");
             HvLogHex("E65", (UINT64)ApStatus);
+            Print(L"[HYPE] FAIL: AP virt 0x%lx\r\n", (UINT64)ApStatus);
         }
     }
 
     Tsc1 = __rdtsc();
     HvLogHex("E11", Tsc1 - Tsc0);
+
+    if (BspStatus == 0 && ApStatus == 0) {
+        Print(L"\r\n");
+        Print(L"===========================================\r\n");
+        Print(L"[HYPE] HV INSTALLED - %d CPUs guest, booting Windows\r\n",
+              (UINT32)gUefiHvContext.NumProcessors);
+        Print(L"===========================================\r\n");
+    } else {
+        Print(L"\r\n");
+        Print(L"[HYPE] *** PARTIAL INSTALL *** BSP=0x%lx AP=0x%lx\r\n",
+              (UINT64)BspStatus, (UINT64)ApStatus);
+    }
 
     return EFI_SUCCESS;
 }

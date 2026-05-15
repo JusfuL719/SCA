@@ -355,6 +355,7 @@
   DRG = HvLogHex("DRG render-gate fn prologue", ...)              # one-shot at HOOK_INSTALL_DRAW: first 8B at ImageBase + APEX_OFF_RENDER_GATE_FN; compared against APEX_RENDER_GATE_FN_PROLOGUE_LE64 — install ABORTS on mismatch (see DRX)
   DRR = HvLogHex("DRR render-gate prologue read fail VA", ...)    # 2026-05-13: HOOK_INSTALL_DRAW: ReadGuestVirtual on render-gate VA failed before the prologue check could run; install aborted with BAD_ADDR
   DRX = HvLogHex("DRX render-gate prologue mismatch — expected", ...) # 2026-05-13: HOOK_INSTALL_DRAW: DRG bytes != APEX_RENDER_GATE_FN_PROLOGUE_LE64 (logged value). Canon has drifted; re-pin APEX_OFF_RENDER_GATE_FN before reinstalling.
+  DRY = HvLogHex("DRY hook page outside canon RenderGate", hook_page) # 2026-05-14: HOOK_INSTALL_DRAW: HookVa is on a different 4K page than canon APEX_OFF_RENDER_GATE_FN. Soft warn only — install proceeds. Invariant per SCA/research/hyperjacking_2026_state.md §6.4 item 4: only one .text exec trap, on the RenderGate page. Reviewers MUST verify any new hook page before suppressing.
   DRH = HvLogHex("DRH draw hook NPF count this window", ...)      # cumulative NPFs on hook page since last DRH/DRF; sum across capture = true exec count (not heartbeat-bounded)
   DPL = HvLogHex("DPL draw hook payload tick fired", ...)         # cycle 9j: now (Fired & 0x7)==1 so a typical capture shows actual cadence (was 0x3F — masked all signal at 8 NPF/capture)
   DPC = HvLogHex("DPC payload Cr3/ImageBase==0 bail", ...)        # cycle 9j: low bits — 1=Cr3==0, 2=ImageBase==0, 3=both. Diagnoses the Fired==1 first-tick race where capture not yet broadcast to this VCPU
@@ -492,3 +493,33 @@
   MN4 = HvLogHex("MN4 menu kbutton edge", (KeyId<<8)|state)        # KeyId: 0=USE 1=DUCK 2=JUMP 3=SPEED 4=FORWARD
   MN5 = HvLogHex("MN5 menu open toggled (IN_USE triple-tap)", Open) # 1=open 0=closed
   MN6 = HvLogHex("MN6 menu item value changed", (Row<<8)|NewVal)    # Row indexes kMenuItems[]; NewVal is new u8
+
+## HypeRender.c — render queue (Phase 1 = log-only BackendNone; Phase 2+ = string-hijack / vgui)
+# PMC_CMD_RENDER_TEXT (0x29): Arg1=packed(duration[15:0] x_q8[31:16] y_q8[47:32] color[55:48] flags[63:56])
+#                              Arg2=guest VA of null-terminated string in caller's locked memory (≤63 chars).
+# PMC_CMD_RENDER_CLEAR (0x2A): zeroes all 8 render slots.
+  RDQ = HvLogHex("RDQ render push",           (slot<<16)|duration_ticks)        # fired by HypeRenderPush on each new entry
+  RDR = HvLogHex("RDR render tick active",    (slot<<32)|ticks_remaining)       # BackendNone: rate-gated ~every 128 payload ticks per active slot
+  RDX = HvLogHex("RDX render entry expired",  slot)                             # fired when TicksRemaining decrements to 0
+  RDP = HvLog("RDP render fps prologue verify PASS")                            # one-shot — APEX_FPS_PRINTF_RVA bytes match canon prologue
+  RDD = HvLogHex("RDD render fps prologue DRIFT", got_le64)                     # one-shot — canon stale; backend latches FAIL, no writes
+  RDU = HvLog("RDU render fps fmt backup taken")                                # one-shot — original format string saved before first overwrite
+  RDH = HvLogHex("RDH render fps hijack write", (slot<<32)|payload_len)         # slot took ownership of .rdata fmt string; engine renders it from this frame
+  RDV = HvLog("RDV render fps fmt restored")                                    # backup written back over fmt slot — slot expired or queue cleared
+  RDF = HvLog("RDF render fps showfps forced ON")                               # show_fps convar was 0; HV flipped to 1 so FPS HUD paints (Apex strips dev console)
+  RDW = HvLogHex("RDW render fps showfps restored", prior_value)                # convar restored to its pre-hijack value (might have been 0)
+  RDS = HvLogHex("RDS render sink override RVA",      new_rva)                  # PMC_CMD_RENDER_SET_SINK installed; 0=revert to canon, !=0=runtime override
+  RDM = HvLogHex("RDM render sink override max len",  new_len)                  # paired with RDS — bounds memcpy/restore length
+  RDN = HvLogHex("RDN render sink indirect_off",      new_off)                  # paired with RDS/RDM (rev-4) — 0=direct write at RVA, !=0=deref *(ImageBase+RVA+off) for heap VA (e.g. ConVar pszString +0x40)
+  RDI = HvLogHex("RDI render sink indirect resolved", heap_va)                  # one-shot — deref succeeded, sink VA is on the heap (convar pszString hit)
+  RDJ = HvLogHex("RDJ render sink indirect deref FAIL", ptr_cell_va)            # ReadGuestVirtual at ImageBase+RVA+off failed; convar struct unmapped or RVA wrong
+  RDK = HvLogHex("RDK render sink indirect bogus heap VA", heap_va)             # deref returned NULL / sub-64K — convar's pszString isn't initialized yet or wrong offset
+  DMM = HvLogHex("DMM diag msr timing — msr#",        msr_id)                   # PMC_CMD_DIAG_MSR_TIMING entry: which MSR was probed (0xC0000080 EFER, 0xC0010114 VM_CR, 0xC0010117 VM_HSAVE_PA)
+  DMA = HvLogHex("DMA diag msr timing — host avg cy", avg)                      # mean RDTSC-pair delta over N=1024 RDMSR calls IN HOST CONTEXT (== bare-metal baseline; guest-trip cost = this + ~1400 VMEXIT roundtrip)
+  DMX = HvLogHex("DMX diag msr timing — host max cy", max)                      # max RDTSC-pair delta (host context — worst case from cache misses / SMI)
+  BX0 = HvLog("BX0 box-scan STOP")                                              # PMC_CMD_SCAN_BOX arg1=0 — ScanOneEntity reverts to player/prop-only filter
+  BX1 = HvLog("BX1 box-scan START")                                             # PMC_CMD_SCAN_BOX arg1=1 — ScanOneEntity widens to log unknown classes + probe +0x1660
+  BXN = HvLogHex("BXN box-scan unknown class name-low", name_lo)                # name@+0x479 first 8 bytes for an entity that wasn't player/prop; rate-limited 1/16 ticks per slot
+  BXH = HvLogHex("BXH box-scan +0x1660 ASCII hit ent VA", ent_va)               # entity whose +0x1660 looked like text (= deathbox m_customOwnerName populated)
+  BXQ = HvLogHex("BXQ box-scan +0x1660 qword value",      owner_qw)             # paired with BXH — the actual qword we matched (eyeball ASCII / heap-ptr)
+# RDB/RDE reserved for Phase 3 vgui backend

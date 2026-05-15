@@ -9,11 +9,15 @@ Type-0 AMD SVM hypervisor delivered as a UEFI DXE_RUNTIME_DRIVER. Virtualizes BS
 EDK2, GCC + NASM + Python 3. Package `SCAPkg.dsc`, INF `PlatformInit.inf`, output `PlatformInit.efi`.
 
 ```bash
-PYTHON_COMMAND=python3 source edk2/edk2setup.sh
-build -p SCAPkg/SCAPkg.dsc -a X64 -t GCC -b DEBUG
+cd /srv/nfs/shared/Shared/Tools/EDK2
+PYTHON_COMMAND=python3 . ./edksetup.sh BaseTools
+export PATH="$PWD/BaseTools/BinWrappers/PosixLike:$PATH"
+export PACKAGES_PATH="$PWD:/srv/nfs/shared/Shared/SCA"
+build -p SCAPkg.dsc -a X64 -t GCC -b DEBUG
 ```
 
-Output: `Build/SCAPkg/DEBUG_GCC/X64/PlatformInit.efi`.
+In-tree build — `SCA/` IS the package (reachable via `PACKAGES_PATH`), no rsync into `Tools/EDK2/`. Wrapped by `tools/build_sca_hv.sh` (RELEASE).
+Output: `Tools/EDK2/Build/SCAPkg/DEBUG_GCC/X64/PlatformInit.efi`.
 
 GCC: `-mno-red-zone -fno-stack-protector -mabi=ms -mno-sse -mno-sse2 -msoft-float -fno-lto`. NASM: `-f elf64`. No EBS hook — virtualizes at entry, stays resident through EBS.
 

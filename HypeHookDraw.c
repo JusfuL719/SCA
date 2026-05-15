@@ -1,6 +1,31 @@
 // HypeHookDraw.c — per-frame draw-hook + glow/aim payload (cycle 9m).
 // Phase 2 rearm: NPF clears NX + logs DR0 (any-RIP, cycle 9h+); no TF/#DB.
 // VmexitHandler heartbeat re-sets NX every ~228 ms (DrawHookRearm).
+//
+// =====================================================================
+// INVARIANT: the only NPT exec trap in this file is on the canon-pinned
+// Apex render-gate function (currently APEX_OFF_RENDER_GATE_FN in
+// r5apex.exe.text). Adding ANY new exec trap on a protected-module page
+// is a ban vector. ILOVECHEATAS UC #750523 (2026-04-30) and SCA
+// research/hyperjacking_2026_state.md §6.4 item 4: "hook on protected
+// module = ban; hook on unrelated address = clean." AC reads PFNs
+// cheaply and correlates image-backed-vs-private — over a long enough
+// timeline the AC only has to catch one mismatch ever.
+//
+// Architectural rule: the entire SCA design depends on read-only access
+// to r5apex.exe (Cr3PassiveSample + WriteGuestVirtual into known mutable
+// data fields only). The single exec trap on RenderGate exists because
+// it's the only hook-time-anchor that gives DrawHookPayloadTick its
+// per-frame cadence — adding any other .text trap regresses the whole
+// no-text-hooks posture.
+//
+// HookDrawHandleInstall logs DRY when a caller arms outside the canon
+// RenderGate page so drift is visible in the drain. The arm still
+// proceeds (today's installer passes a different "L2 entry" RVA that
+// IS the operator's intended RenderGate target — the canon RVA is the
+// drift-guard prologue check, not the trap target), but a warning is
+// emitted so any new caller is forced to reckon with the invariant.
+// =====================================================================
 
 // HID_SNAPSHOT_MODE probe retired 2026-05-12 cycle 11g — HSE=120 events
 // in drain 11g2 confirmed player bucket 78 is live. HIGHLIGHT_ID write
@@ -9,6 +34,7 @@
 #include "HypeHookDraw.h"
 #include "HypeAimTrigger.h"
 #include "HypeMenu.h"
+#include "HypeRender.h"
 #include "HypeContext.h"
 #include "HypeDebug.h"
 #include "HypeMemory.h"
@@ -34,13 +60,50 @@ static volatile UINT32 gWrapperRingIdx   = 0;
 static volatile UINT32 gWrapperRingDone  = 0;
 static UINT8 gDrawHookHvBuf[HOOK_DRAW_BUF_BYTES] __attribute__((aligned(0x1000)));
 
+// Box-scan mode: temporary widening of ScanOneEntity to log non-player /
+// non-prop entity name-low qwords AND check +0x1660 for ASCII text
+// (m_customOwnerName populated = deathbox candidate). First entity hit
+// stored in gBoxScanCapturedEnt for installer to retrieve via SCAN_BOX
+// arg1=2 (GET). Disabled by default — must be explicitly armed.
+static volatile UINT8  gBoxScanMode         = 0;
+static volatile UINT64 gBoxScanCapturedEnt  = 0;
+// Per-slot rate-limit: log unknown name-low at most 1/16 ticks (avoids
+// drowning the 4 MB ring during a wide scan).
+static UINT64          gBoxScanLastLogTick[HOOK_DRAW_CACHE_SIZE] = {0};
+
+VOID
+BoxScanSetMode(UINT8 Mode)
+{
+    if (Mode == 0) {
+        __atomic_store_n(&gBoxScanMode, 0, __ATOMIC_RELEASE);
+        HvLog("BX0\n");
+    } else {
+        // Reset capture + per-slot rate limits on START so a fresh arm
+        // doesn't return stale capture from a prior session.
+        __atomic_store_n(&gBoxScanCapturedEnt, 0, __ATOMIC_RELEASE);
+        for (UINT32 i = 0; i < HOOK_DRAW_CACHE_SIZE; i++) {
+            gBoxScanLastLogTick[i] = 0;
+        }
+        __atomic_store_n(&gBoxScanMode, 1, __ATOMIC_RELEASE);
+        HvLog("BX1\n");
+    }
+}
+
+UINT64
+BoxScanGetCaptured(VOID)
+{
+    // Atomic exchange so subsequent GET sees the next-fresh capture
+    // (per-call drain semantics — operator can poll without dups).
+    return __atomic_exchange_n(&gBoxScanCapturedEnt, 0, __ATOMIC_ACQ_REL);
+}
+
 // Runtime glow knobs — settable via PMC_CMD_SET_GLOW_PARAMS, also mutated
 // directly by HypeMenu. Defaults match cycle 9k visual + canon entity-write
 // values. Typedef + extern are in HypeHookDraw.h so HypeMenu can reference.
 volatile GLOW_PARAMS_RT gGlowParams = {
     .Slot = 78, .Mask = 0x01, .FilterMode = 0, .Enabled = 1,
     .VisType = 1, .GlowFix = 2, .WriteVisType = 1, .WriteGlowFix = 1,
-    .SquadGlow = 0
+    .SquadGlow = 0, .SquadSlot = (UINT8)APEX_SLOT_SQUAD
 };
 
 VOID *HookDrawScratchHvBuf(VOID) {
@@ -494,6 +557,48 @@ static VOID ScanOneEntity(UINT64 Cr3, UINT64 ImageBase, UINT32 Cursor, UINT64 Ti
     UINT8 IsPlayer = ((NameLo & APEX_NAME_PLAYER_MASK) == APEX_NAME_PLAYER) ? 1 : 0;
     UINT8 IsProp   = ((UINT32)NameLo == APEX_NAME_PROP_4) ? 1 : 0;
     if (!IsPlayer && !IsProp) {
+        // Box-scan mode: don't bail. Log unknown name-low + check +0x1660
+        // for ASCII text. First entity with text at +0x1660 (= populated
+        // m_customOwnerName, deathbox signature) is captured for the
+        // installer to retrieve.
+        if (__atomic_load_n(&gBoxScanMode, __ATOMIC_ACQUIRE)) {
+            // Per-slot rate-limit on the BXN log to keep the ring sane.
+            if (Tick - gBoxScanLastLogTick[Cursor] >= 16) {
+                gBoxScanLastLogTick[Cursor] = Tick;
+                HvLogHex("BXN", NameLo);  // unknown class name-low
+            }
+            // Probe +0x1660 — if it dereferences to ASCII text, this is
+            // very likely a deathbox with m_customOwnerName populated.
+            UINT64 OwnerQw = 0;
+            if (!EFI_ERROR(ReadGuestVirtual(Cr3, Ent + 0x1660ULL,
+                                            &OwnerQw, sizeof(OwnerQw)))) {
+                // ASCII heuristic: low byte is printable AND high dword
+                // is in heap range (string buffer pointer) OR low qword
+                // bytes look printable inline. Many engines use both
+                // patterns — accept either.
+                UINT8  b0 = (UINT8)( OwnerQw        & 0xFF);
+                UINT8  b1 = (UINT8)((OwnerQw >> 8)  & 0xFF);
+                UINT8  b2 = (UINT8)((OwnerQw >> 16) & 0xFF);
+                UINT64 hi = OwnerQw >> 32;
+                BOOLEAN inline_ascii = (b0 >= 0x20 && b0 < 0x7F &&
+                                        b1 >= 0x20 && b1 < 0x7F &&
+                                        b2 >= 0x20 && b2 < 0x7F);
+                BOOLEAN heap_ptr_shape = (hi >= 0x00000100 &&
+                                          hi <  0x00000800 &&
+                                          (OwnerQw & 0xF) == 0);
+                if (inline_ascii || heap_ptr_shape) {
+                    HvLogHex("BXH", Ent);
+                    HvLogHex("BXQ", OwnerQw);
+                    UINT64 Prev = __atomic_exchange_n(
+                        &gBoxScanCapturedEnt, Ent, __ATOMIC_ACQ_REL);
+                    if (Prev == 0) {
+                        // Capture only the first hit — operator pulls via
+                        // SCAN_BOX arg1=2; explicit STOP/GET resets if
+                        // they want to capture a different one.
+                    }
+                }
+            }
+        }
         gEntCache[Cursor].Ent = 0;
         return;
     }
@@ -619,6 +724,8 @@ static VOID RenderGlow(UINT64 Cr3, UINT64 ImageBase) {
 
     InitHighlightSlot(Cr3, HighlightSettings, APEX_SLOT_PLAYER,
                        APEX_F32_ONE,     APEX_F32_ZERO,    APEX_F32_ZERO);
+    InitHighlightSlot(Cr3, HighlightSettings, APEX_SLOT_SQUAD,
+                       APEX_F32_ONE,     APEX_F32_ONE,     APEX_F32_ZERO);  // yellow — squad distinct from enemy
     InitHighlightSlot(Cr3, HighlightSettings, APEX_SLOT_LOOT_MYTHIC,
                        APEX_F32_ONE,     APEX_F32_HALF,    APEX_F32_ZERO);
     InitHighlightSlot(Cr3, HighlightSettings, APEX_SLOT_LOOT_LEGENDARY,
@@ -631,6 +738,7 @@ static VOID RenderGlow(UINT64 Cr3, UINT64 ImageBase) {
                        APEX_F32_HALF,    APEX_F32_HALF,    APEX_F32_HALF);
 
     UINT8 GlowSlot   = gGlowParams.Slot;
+    UINT8 SquadSlot  = gGlowParams.SquadSlot;
     UINT8 GlowFilter = gGlowParams.FilterMode;
     UINT8 GlowOn     = gGlowParams.Enabled;
     UINT8 SquadOn    = gGlowParams.SquadGlow;
@@ -646,10 +754,11 @@ static VOID RenderGlow(UINT64 Cr3, UINT64 ImageBase) {
             if (S->IsDecoy)    continue;
             BOOLEAN SameTeam = (gLocal.Ent != 0 && S->Team == gLocal.Team);
             // 0=enemy_only 1=all 2=teammates_only.
-            // SquadOn promotes SameTeam past the enemy_only skip — HID=28 → GlowSlot lever.
+            // SquadOn promotes SameTeam past the enemy_only skip; same-team
+            // entities route to SquadSlot (distinct RGB) instead of GlowSlot.
             if (GlowFilter == 0 && SameTeam && !SquadOn) continue;
             if (GlowFilter == 2 && !SameTeam) continue;
-            Slot = GlowSlot;
+            Slot = (SameTeam && SquadOn) ? SquadSlot : GlowSlot;
         } else {
             Slot = SlotForTier(S->LootTier);
             if (Slot == 0) continue;
@@ -738,6 +847,7 @@ static VOID DrawHookPayloadTick(PVCPU_DATA Vcpu) {
     if (HasLocal) ProbeGlowW2S();
 
     MirrorSnapshots(Fired);
+    HypeRenderTick(Vcpu, Cr3, ImageBase, Fired);
 
     // Diff-probe (cycle 9j+) — diagnostic; gated to one entity per 8 ticks.
     if ((Fired & 0x7) == 1) {
@@ -973,6 +1083,18 @@ UINT32 HookDrawHandleInstall(PVCPU_DATA Vcpu, COVERT_CMD *Cmd) {
             HvLogHex("DRX", APEX_RENDER_GATE_FN_PROLOGUE_LE64);
             Cmd->Result = 0;
             return COVERT_STATUS_BAD_ADDR;
+        }
+
+        // Invariant warning: only one exec trap, on the RenderGate page.
+        // Soft-fail (log + proceed) so the working install path is not
+        // disrupted, but any caller arming outside the canon RenderGate
+        // page must show up in the drain so reviewers notice. Audit
+        // SCA/research/hyperjacking_2026_state.md §6.4 item 4 before
+        // suppressing this warning.
+        UINT64 CanonPage = (ImageBase + APEX_OFF_RENDER_GATE_FN) & ~0xFFFULL;
+        UINT64 HookPage  = HookVa & ~0xFFFULL;
+        if (HookPage != CanonPage) {
+            HvLogHex("DRY", HookPage);
         }
     }
 

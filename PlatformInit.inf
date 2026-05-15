@@ -42,6 +42,8 @@
   HypeAimTrigger.c
   HypeMenu.h
   HypeMenu.c
+  HypeRender.h
+  HypeRender.c
   HypeVmrun.nasm
   HypeIsr.nasm
 

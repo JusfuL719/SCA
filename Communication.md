@@ -154,6 +154,7 @@ struct COVERT_MAILBOX {
 | `0x18` | TLB_PROBE | Research-only NPT iTLB-asymmetry probe (Zen 3). See § TLB_PROBE. |
 | `0x36` | CR3_INTERCEPT | Arm chunked CR3 capture (`Cr3PassiveSample`) |
 | `0x37` | GET_INTERCEPT_PEB | Poll chunked CR3 scanner; returns captured PEB |
+| `0x2B` | RENDER_SET_SINK | Atomic render-sink override transition. `Arg1`=NewRva (0 → revert to `APEX_FPS_FMT_RVA`), `Arg2`=NewLen (0 → revert to `APEX_FPS_FMT_LEN`, capped at `RENDER_SINK_MAX_LEN`=256), `Arg3`=IndirectOff (0 → direct write at `ImageBase+RVA`; non-zero → HV reads a 64-bit pointer cell at `ImageBase+RVA+Arg3` and uses the result as the sink VA — for ConVar `m_pszString` slots at +0x40 of the Source ConVar struct). Synchronously restores the prior sink + clears queue + invalidates backup before flipping override. Returns `COVERT_STATUS_OK` on success, `BAD_ADDR` if Cr3/ImageBase unset. |
 
 Reserved/unused: `0x01, 0x03–0x06, 0x09, 0x0B–0x10, 0x11–0x13, 0x14–0x16, 0x38` → `BAD_CMD`.
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# sca-svc --live-memdump — Phase-4 PEB CR3 latch + VIRT_READ bulk.
+# SCAhost --live-memdump — Phase-4 PEB CR3 latch + VIRT_READ bulk.
 # Never touches HOOK_INSTALL_DRAW (.text stays canonical; no stale-RVA CTD).
 #
-# Default: SSH PC1 → C:\SCA\sca-svc.exe -v --live-memdump C:\SCA
+# Default: SSH PC1 → C:\SCA\SCAhost.exe -v --live-memdump C:\SCA
 # with auto-PEB from get_target_peb.ps1 (override with --peb 0x...).
 set -uo pipefail
 
 PC1="${PC1:-pc1@10.0.0.1}"
-EXE='C:\SCA\sca-svc.exe'
+EXE='C:\SCA\SCAhost.exe'
 PEB_PS='C:\SCA\get_target_peb.ps1'
 
 ARGS=("$@")

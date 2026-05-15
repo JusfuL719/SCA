@@ -1,0 +1,16 @@
+{"name":"cc_emit","name_rva":26127432,"ctor_rva":21083840,"convar_global_rva":null,"default_rva":26127432}
+{"name":"cc_emit","name_rva":26127432,"ctor_rva":6235184,"convar_global_rva":null,"default_rva":-5368708992}
+{"name":"cc_lookup_crc","name_rva":25100976,"ctor_rva":2393776,"convar_global_rva":25100976,"default_rva":null}
+{"name":"cl_buy_favorite","name_rva":25100808,"ctor_rva":2393776,"convar_global_rva":25100808,"default_rva":null}
+{"name":"developer","name_rva":25276248,"ctor_rva":16164624,"convar_global_rva":null,"default_rva":25276248}
+{"name":"fs_async_stream","name_rva":26715144,"ctor_rva":21265952,"convar_global_rva":null,"default_rva":-1073217472}
+{"name":"fs_async_stream_open","name_rva":26715120,"ctor_rva":21265952,"convar_global_rva":null,"default_rva":-1073217472}
+{"name":"host_thread_mode","name_rva":25276312,"ctor_rva":9118592,"convar_global_rva":null,"default_rva":25276312}
+{"name":"in_forceuser","name_rva":25135696,"ctor_rva":21420480,"convar_global_rva":-1073217376,"default_rva":25135696}
+{"name":"in_graph","name_rva":26130360,"ctor_rva":21420480,"convar_global_rva":null,"default_rva":26130360}
+{"name":"mat_autoexposure_force_value","name_rva":25360424,"ctor_rva":6180064,"convar_global_rva":235528952,"default_rva":25360424}
+{"name":"mat_debug_postprocess_allowed","name_rva":25333776,"ctor_rva":6180064,"convar_global_rva":235529048,"default_rva":25333776}
+{"name":"mat_postprocess_enable","name_rva":25333384,"ctor_rva":6180064,"convar_global_rva":235531280,"default_rva":25333384}
+{"name":"net_proto","name_rva":25299168,"ctor_rva":null,"convar_global_rva":null,"default_rva":25299168}
+{"name":"r_hand","name_rva":25973100,"ctor_rva":2274256,"convar_global_rva":null,"default_rva":25973100}
+{"name":"rui_args","name_rva":26155144,"ctor_rva":13934768,"convar_global_rva":null,"default_rva":26155144}

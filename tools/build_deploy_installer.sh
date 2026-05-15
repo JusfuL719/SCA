@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# build_deploy_installer.sh — build sca-svc.exe on PC1, sign, push back.
-# Requires PEX/tools/sign/svc-codesign.pfx (regen.sh covers initial gen).
+# build_deploy_installer.sh — build SCAhost.exe on PC1, push back.
+# Unsigned: SCA decoupled from PEX cert tree. PC1 is admin-controlled lab box;
+# no WDAC/SmartScreen blocking on hand-launched binaries. Re-add signing only
+# if WDAC starts rejecting the exe.
 
 set -euo pipefail
 
@@ -8,12 +10,6 @@ SCA_ROOT=/srv/nfs/shared/Shared/SCA
 INSTALLER_DIR=$SCA_ROOT/installer
 PC1=pc1@10.0.0.1
 TS=$(date +%Y%m%d_%H%M%S)
-
-# Reuse the existing PEX self-signed cert — same trust anchor on PC1.
-SIGN_DIR=/srv/nfs/shared/Shared/PEX/tools/sign
-SIGN_PFX=$SIGN_DIR/svc-codesign.pfx
-SIGN_PASS=pex
-SIGN_CRT=$SIGN_DIR/svc-codesign.crt
 
 c_red()  { printf '\033[31m%s\033[0m\n' "$*"; }
 c_grn()  { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -51,7 +47,7 @@ ssh "$PC1" 'powershell -NoProfile -Command "if (Test-Path C:\\SCA\\installer) { 
 ssh "$PC1" 'cmd /c "cd /d C:\\SCA\\installer && tar -xmzf C:\\Tmp\\sca_installer.tgz"'
 c_grn "extracted"
 
-c_step "Build sca-svc.exe on PC1"
+c_step "Build SCAhost.exe on PC1"
 BUILD_LOG="/tmp/sca_build_${TS}.log"
 ssh "$PC1" 'cmd /c "C:\\Tools\\build_installer_local.bat"' > "$BUILD_LOG" 2>&1 || {
     c_red "BUILD FAILED — last 30 lines:"
@@ -67,38 +63,20 @@ c_grn "built"
 
 c_step "Pull binary → ${INSTALLER_DIR}/build/Release/"
 mkdir -p "${INSTALLER_DIR}/build/Release"
-scp -q "${PC1}:C:/SCA/installer/build/Release/sca-svc.exe" \
-    "${INSTALLER_DIR}/build/Release/sca-svc.exe"
+scp -q "${PC1}:C:/SCA/installer/build/Release/SCAhost.exe" \
+    "${INSTALLER_DIR}/build/Release/SCAhost.exe"
+SIZE_INST=$(stat -c%s "${INSTALLER_DIR}/build/Release/SCAhost.exe")
+c_grn "pulled: SCAhost=${SIZE_INST}B (unsigned)"
 
-sign_one() {
-    local exe=$1 disp=$2
-    [[ -f "$SIGN_PFX" ]] || die "missing $SIGN_PFX — run PEX/tools/sign/regen.sh"
-    osslsigncode sign \
-        -pkcs12 "$SIGN_PFX" -pass "$SIGN_PASS" \
-        -h sha256 \
-        -n "$disp" \
-        -in "$exe" \
-        -out "${exe}.signed" >/dev/null 2>&1 \
-        || die "osslsigncode sign failed: $exe"
-    mv "${exe}.signed" "$exe"
-    osslsigncode verify -CAfile "$SIGN_CRT" -in "$exe" >/dev/null 2>&1 \
-        || die "post-sign verify failed: $exe"
-}
-
-c_step "Sign with PEX self-signed cert"
-sign_one "${INSTALLER_DIR}/build/Release/sca-svc.exe"  "Service Host"
-SIZE_INST=$(stat -c%s "${INSTALLER_DIR}/build/Release/sca-svc.exe")
-c_grn "signed: sca-svc=${SIZE_INST}B"
-
-c_step "Push signed binary + helper scripts to PC1"
+c_step "Push binary + helper scripts to PC1"
 ssh "$PC1" 'cmd /c "if not exist C:\\SCA mkdir C:\\SCA"' 2>/dev/null
-scp -q "${INSTALLER_DIR}/build/Release/sca-svc.exe" \
-    "${PC1}:C:/SCA/sca-svc.exe"
+scp -q "${INSTALLER_DIR}/build/Release/SCAhost.exe" \
+    "${PC1}:C:/SCA/SCAhost.exe"
 scp -q "$SCRIPT_DIR/get_target_peb.ps1" \
     "${PC1}:C:/SCA/get_target_peb.ps1"
 scp -q "$SCRIPT_DIR/wait_target_peb.ps1" \
     "${PC1}:C:/SCA/wait_target_peb.ps1"
-c_grn "pushed → C:\\SCA\\sca-svc.exe + get_target_peb.ps1 + wait_target_peb.ps1"
+c_grn "pushed → C:\\SCA\\SCAhost.exe + get_target_peb.ps1 + wait_target_peb.ps1"
 
 c_step "Hash verify"
 verify_hash() {
@@ -108,14 +86,14 @@ verify_hash() {
     rh=$(ssh "$PC1" "powershell -NoProfile -Command \"(Get-FileHash '${remote_path}' -Algorithm SHA256).Hash\"" 2>&1 | tr -d '\r\n ')
     [[ "$lh" == "$rh" ]] || die "hash mismatch on $remote_path: local=$lh remote=$rh"
 }
-verify_hash "${INSTALLER_DIR}/build/Release/sca-svc.exe"  'C:\SCA\sca-svc.exe'
+verify_hash "${INSTALLER_DIR}/build/Release/SCAhost.exe"  'C:\SCA\SCAhost.exe'
 verify_hash "$SCRIPT_DIR/get_target_peb.ps1"               'C:\SCA\get_target_peb.ps1'
 verify_hash "$SCRIPT_DIR/wait_target_peb.ps1"              'C:\SCA\wait_target_peb.ps1'
 c_grn "hashes match"
 
 c_grn ""
 c_grn "DONE."
-c_grn "  sca-svc.exe  ${SIZE_INST} B   PC1: C:\\SCA\\sca-svc.exe"
+c_grn "  SCAhost.exe  ${SIZE_INST} B   PC1: C:\\SCA\\SCAhost.exe"
 c_grn ""
 c_grn "Run installer on PC1 (post-HV-boot, post-game-launch):"
-c_grn "    C:\\SCA\\sca-svc.exe -v --rva 0xDEADBEEF --scratch 0x0 --pso 0"
+c_grn "    C:\\SCA\\SCAhost.exe -v --rva 0xDEADBEEF --scratch 0x0 --pso 0"

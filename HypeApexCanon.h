@@ -35,6 +35,29 @@
 // arm-on-garbage failure mode.
 #define APEX_RENDER_GATE_FN_PROLOGUE_LE64 0x91B60F4408EC8348ULL
 
+// --- render-path text sink (SCA Phase 2) ---
+// Pinned 2026-05-14 via apex_dumper/probe_fps_sink.py. RTTI chat-walk
+// (probe_rtti_chat.py) was a clean negative — Apex/EAC stripped MSVC
+// RTTI entirely (zero `.?AV*@@` strings in .rdata). FPS-buffer probe
+// landed: format string `%3i fps -- inp(%3.1f) sv(%3.1f) cl(%3.1f)
+// render(%3.1f) snd(%3.1f) cl_dll(%3.1f) exec(%3.1f) paks(%3.1f)
+// ents(%d) ticks(%d)` consumed by Q_snprintf-style helper at
+// APEX_FPS_PRINTF_RVA into a stack buffer (caller `[rsp+0xE0]`,
+// len 0x100). Stack-only sink can't be poked, so the recipe is
+// .rdata format-string overwrite — HV writes "HV INSTALLED" once
+// at install time and the engine renders it every frame indefinitely
+// with no per-frame VMEXIT. PRINTF_RVA + prologue is a drift guard
+// (mirrors APEX_RENDER_GATE_FN_PROLOGUE_LE64 contract).
+//
+// HV Phase-2 BackendStringHijack (follow-up, not implemented yet):
+//   1. verify *(u64*)(image + APEX_FPS_PRINTF_RVA) == APEX_FPS_PRINTF_PROLOGUE_LE64
+//   2. memcpy(image + APEX_FPS_FMT_RVA, payload, min(len, APEX_FPS_FMT_LEN))
+//   3. NUL-terminate; engine paints it every frame as the FPS counter line.
+#define APEX_FPS_FMT_RVA                 0x0181B120ULL  // .rdata format string
+#define APEX_FPS_FMT_LEN                 0x0000007BULL  // 123 chars (excl NUL); 5 NUL pad bytes follow before next string
+#define APEX_FPS_PRINTF_RVA              0x005F2430ULL  // Q_snprintf-style consumer (not Con_NPrintf — sig is buf,len,fmt,...)
+#define APEX_FPS_PRINTF_PROLOGUE_LE64    0x4C894C182444894CULL  // first 8 bytes: mov [rsp+0x18],r8 ; mov [rsp+0x20],r9
+
 // --- entity ---
 #define APEX_ENT_STRIDE                  0x00000020ULL  // reference: entity slot stride
 #define APEX_ENT_ORIGIN                  0x0000017CULL
@@ -104,6 +127,7 @@
 #define APEX_FN_BITS_VIS                   APEX_BUCKET_FNBITS_SLOT78_FULLVIEW
 #define APEX_SLOT_PLAYER                 78UL
 #define APEX_SLOT_LOOT_MYTHIC            79UL
+#define APEX_SLOT_SQUAD                  80UL  // squad-glow bucket — distinct RGB from 78 (enemy red)
 #define APEX_SLOT_LOOT_LEGENDARY         77UL
 #define APEX_SLOT_LOOT_EPIC              76UL
 #define APEX_SLOT_LOOT_RARE              75UL

@@ -21,7 +21,7 @@ if(MSVC)
     set_target_properties(${PROJECT_NAME} PROPERTIES
         LINK_FLAGS "/SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /guard:cf /DEBUG:NONE"
     )
-        set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "sca-svc")
+        set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "SCAhost")
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

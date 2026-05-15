@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Drain HV log.
-# Default: live via sca-svc.exe --drain (HV stays up). Writes drain to C:\SCA\.
+# Default: live via SCAhost.exe --drain (HV stays up). Writes drain to C:\SCA\.
 # --reboot: post-mortem path via D:\drain.flag + reboot (use after BSOD/wedge only).
 #
 # WAIT_TARGET_SEC>0: poll for r5apex_dx12 + PEB before drain (same as run_installer.sh).
 set -uo pipefail
 
 PC1=pc1
-EXE='C:\SCA\sca-svc.exe'
+EXE='C:\SCA\SCAhost.exe'
 PEB_PS='C:\SCA\get_target_peb.ps1'
 WAIT_PEB_PS='C:\SCA\wait_target_peb.ps1'
 WAIT_TARGET_SEC="${WAIT_TARGET_SEC:-0}"
@@ -48,7 +48,7 @@ else
     echo "[*] live drain: $EXE --peb $PEB --drain"
     ssh "$PC1" "cmd /c \"cd /d C:\\SCA && ${EXE} -v --peb ${PEB} --drain\""
     RC=$?
-    [[ $RC -eq 0 ]] || { echo "[FAIL] sca-svc rc=$RC" >&2; exit $RC; }
+    [[ $RC -eq 0 ]] || { echo "[FAIL] SCAhost rc=$RC" >&2; exit $RC; }
     REMOTE_GLOB='C:\SCA\hypedbg-live-*.bin'
     REMOTE_PFX='C:/SCA'
 fi

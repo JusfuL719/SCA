@@ -193,12 +193,12 @@ Bootstrap is single-cmd-per-VMEXIT by construction. VMMCALL stub freed after `NP
 
 - `HYPE_BUILD_SECRET = 0x7A3F9B2E5D1C8064` — matches between HypeSvm.h:47 and installer/auth.h:10 (`kBuildSecretEncoded ^ kBuildKey`). **confirmed**.
 - `volatile` XOR in `auth::BuildSecret()` prevents MSVC constant-fold. **confirmed** (installer/auth.h:17–18).
-- `PEXEPEXE` magic (`0x5045584550455845`) in `scratch_layout.h` — survives in built binary as a fixed sentinel. A userland scan of the sca-svc.exe process VA space would find this literal at offset 0 of the scratch/HookDraw buffer header.
+- `PEXEPEXE` magic (`0x5045584550455845`) in `scratch_layout.h` — survives in built binary as a fixed sentinel. A userland scan of the SCAhost.exe process VA space would find this literal at offset 0 of the scratch/HookDraw buffer header.
 
 ### 3.5 Notes — Comms
 
 - **VMMCALL always-active:** After bootstrap, VMEXIT_VMMCALL still dispatches. Unknown RCX → `#UD`. Minimal surface — normal guest stack rarely issues VMMCALL.
-- **Mailbox AuthKey in user RW pages:** The 8-byte `auth_key` is readable by any process with ReadProcessMemory on sca-svc. Hostile introspection could observe this.
+- **Mailbox AuthKey in user RW pages:** The 8-byte `auth_key` is readable by any process with ReadProcessMemory on SCAhost. Hostile introspection could observe this.
 - **Trigger page write:** The write that fires the NPF is a single byte write of value 1 to a VirtualLock'd page. Minimal observable profile.
 
 ---
@@ -209,7 +209,7 @@ Bootstrap is single-cmd-per-VMEXIT by construction. VMMCALL stub freed after `NP
 
 - **Mechanism:** NPT NX exec-trap via `DrawHookArmExecTrap` — sets NPT_NX on the 4KB page containing the render-gate VA. On NPF exec-fault, `DrawHookOnNpfHit` fires. HypeHookDraw.c:51–105.
 - **Rearm heartbeat:** `DrawHookRearm` re-sets NPT_NX every ~228ms from VmexitHandler tick path. Confirmed in file header comment.
-- **Installer prologue check:** sca-svc verifies `APEX_RENDER_GATE_FN_PROLOGUE_LE64` before issuing `PMC_CMD_HOOK_INSTALL_DRAW` — guards against hook install on wrong build.
+- **Installer prologue check:** SCAhost verifies `APEX_RENDER_GATE_FN_PROLOGUE_LE64` before issuing `PMC_CMD_HOOK_INSTALL_DRAW` — guards against hook install on wrong build.
 
 ### 4.2 Per-Frame Payload Work (P0 Hot-Path Concern)
 
@@ -358,7 +358,7 @@ If `M0F` appears after bring-up is complete, the LAPIC PTE was not fully restore
   VC0 <trigger_gpa>   — channel armed
   VC2 <mailbox_gpa>   — mailbox GPA logged
 
-Tear-down (sca-svc exit):
+Tear-down (SCAhost exit):
   VC1 <trigger_gpa>   — channel disarmed
 ```
 
@@ -423,5 +423,5 @@ Frequent VAD on exit code NPF (0x400) indicates payload tick is too heavy. Reduc
 6. **[P1] Resolve CR3 poll interval** — `Sleep(5)` is 5ms, not 50ms. Either update docs to say 5ms, or change to `Sleep(50)` if the documented cadence was deliberate for load reasons.
 7. **[P1] Fix ICR_LOW read #UD** — `HandleLapicIcrWrite` injects `#UD` on reads while LAPIC shadow is armed. Add read passthrough path in `HandleLapicIcrWrite` or redirect reads to `PassThroughLapicMmio`.
 8. **[P1] Fix m_flVisible offset ambiguity** — three values in play (0x1A54 in comment, 0x1A64 in code, 0x1A74 in CLAUDE.md). Re-verify against current build and pin one value.
-9. **[P2] Remove/obfuscate PEXEPEXE scratch magic** — fixed sentinel in sca-svc VA is fingerprinted. Derive it from session key or remove the static magic entirely.
+9. **[P2] Remove/obfuscate PEXEPEXE scratch magic** — fixed sentinel in SCAhost VA is fingerprinted. Derive it from session key or remove the static magic entirely.
 10. **[P2] Add HID=78 skip when entity already has correct HID** — minor write pressure reduction; confirms idempotency.

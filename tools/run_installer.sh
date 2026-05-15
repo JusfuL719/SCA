@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SSH-run sca-svc on PC1. Kills any stale instance first.
+# SSH-run SCAhost on PC1. Kills any stale instance first.
 # Default --rva 0x26B87D = cmd-list wrapper Close call site (per-frame draw hook).
 # PEB is auto-grabbed via get_target_peb.ps1 on PC1 to drive Phase 4 scanner;
 # pass --peb explicitly to override.
@@ -10,7 +10,7 @@
 set -uo pipefail
 
 PC1=pc1
-EXE='C:\SCA\sca-svc.exe'
+EXE='C:\SCA\SCAhost.exe'
 PEB_PS='C:\SCA\get_target_peb.ps1'
 WAIT_PEB_PS='C:\SCA\wait_target_peb.ps1'
 WAIT_TARGET_SEC="${WAIT_TARGET_SEC:-0}"
@@ -23,7 +23,7 @@ if [ ${#ARGS[@]} -eq 0 ]; then
 fi
 
 # Kill stale instance
-ssh "$PC1" 'powershell -NoProfile -Command "Get-Process sca-svc,apphost,pexsvc -ErrorAction SilentlyContinue | Stop-Process -Force"' >/dev/null 2>&1 || true
+ssh "$PC1" 'powershell -NoProfile -Command "Get-Process SCAhost,sca-svc,apphost,pexsvc -ErrorAction SilentlyContinue | Stop-Process -Force"' >/dev/null 2>&1 || true
 
 # Auto-grab PEB unless caller supplied --peb
 if ! printf '%s\n' "${ARGS[@]}" | grep -q -- '--peb'; then

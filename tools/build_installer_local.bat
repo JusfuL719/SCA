@@ -19,4 +19,4 @@ cmake --build . --config Release
 if errorlevel 1 (echo CMAKE_BUILD_FAIL & exit /b 1)
 
 echo BUILD_OK
-dir Release\sca-svc.exe
+dir Release\SCAhost.exe

@@ -23,6 +23,12 @@ typedef struct _DRAW_HOOK_DESC {
 VOID *HookDrawScratchHvBuf(VOID);
 UINT32 HookDrawHandleInstall(PVCPU_DATA Vcpu, COVERT_CMD *Cmd);
 
+// Box-scan mode helpers (PMC_CMD_SCAN_BOX). Mode=0 stops, =1 starts,
+// =2 returns the first captured box ent VA (0 if none yet) AND clears
+// it so the next GET sees the next-fresh capture.
+VOID    BoxScanSetMode(UINT8 Mode);
+UINT64  BoxScanGetCaptured(VOID);
+
 // PMC_CMD_HOOK_DRAW_PEEK (0x1C): Arg1=offset, Result=8B at offset.
 UINT32 HookDrawHandlePeek(PVCPU_DATA Vcpu, COVERT_CMD *Cmd);
 
@@ -40,7 +46,8 @@ typedef struct _GLOW_PARAMS_RT {
     UINT8  GlowFix;     // +0x278 value (engine writes -1.0 — race target)
     UINT8  WriteVisType;// 0 = skip the +0x26C write entirely (let engine drive)
     UINT8  WriteGlowFix;// 0 = skip the +0x278 write entirely
-    UINT8  SquadGlow;   // 1 = override engine's HID=28 squad-suppress (route to GlowSlot)
+    UINT8  SquadGlow;   // 1 = override engine's HID=28 squad-suppress (route squad → SquadSlot)
+    UINT8  SquadSlot;   // HID for squad branch when SquadGlow=1 (default APEX_SLOT_SQUAD=80, yellow)
 } GLOW_PARAMS_RT;
 extern volatile GLOW_PARAMS_RT gGlowParams;
 

@@ -30,6 +30,25 @@
 #define PMC_CMD_VIRT_CALL          0x20
 #define PMC_CMD_SET_AIM_PARAMS     0x21
 #define PMC_CMD_SET_MENU_ENABLE    0x22
+#define PMC_CMD_RENDER_TEXT        0x29
+#define PMC_CMD_RENDER_CLEAR       0x2A
+#define PMC_CMD_RENDER_SET_SINK    0x2B
+#define PMC_CMD_DIAG_MSR_TIMING    0x2C
+#define PMC_CMD_SCAN_BOX           0x2D
+
+// Per-entry flags for PMC_CMD_RENDER_TEXT (mirrors HypeRender.h).
+#define RENDER_FLAG_FORCE_FPS_CONVAR  0x01u
+
+// RENDER_TEXT Arg1 packing — mirrors HypeRender.h.
+// [15:0]=duration_ticks [31:16]=x_q8 [47:32]=y_q8 [55:48]=color_idx [63:56]=flags
+static inline uint64_t MakeRenderArg1(uint16_t dur, uint16_t xq8, uint16_t yq8,
+                                      uint8_t color, uint8_t flags) {
+    return (uint64_t)dur
+         | ((uint64_t)xq8   << 16)
+         | ((uint64_t)yq8   << 32)
+         | ((uint64_t)color << 48)
+         | ((uint64_t)flags << 56);
+}
 #define PMC_CMD_VIRT_READ8         0x31
 #define PMC_CMD_VIRT_WRITE4        0x32
 
@@ -78,6 +97,38 @@ struct Args {
     uint8_t  aim_fov           = 0x40;  // AimFovQ4_4 (4.0°)
     // Menu controller — armed by default at install; --menu-disable boots HV without it.
     bool     menu_disabled     = false;
+    // --no-install-confirm suppresses the post-install RENDER_TEXT push.
+    bool     no_install_confirm = false;
+    // --render-sink RVA LEN — runtime sink override pushed via
+    // PMC_CMD_RENDER_SET_SINK before the install-confirm push. Both 0 means
+    // "use canon APEX_FPS_FMT_*". Used by sentinel-test iteration loop —
+    // operator probes one candidate per install run. render_sink_set flips
+    // when --render-sink is supplied (RVA=0 with explicit flag still resets).
+    // --render-sink-indirect CONVAR_RVA PSTRING_OFF LEN — same path but HV
+    // dereferences a 64-bit pointer cell at (ImageBase + CONVAR_RVA +
+    // PSTRING_OFF) and writes at the resolved heap VA. Used for ConVar
+    // string-buffer sinks (Source layout: m_pszString at +0x40 of the
+    // ConVar struct). Output of apex_dumper/probe_rui_sink.py feeds this
+    // form one candidate per run.
+    bool     render_sink_set = false;
+    uint64_t render_sink_rva = 0;
+    uint32_t render_sink_len = 0;
+    uint32_t render_sink_indirect_off = 0;
+    // --sentinel "TEXT" — payload string for install-confirm push. Default
+    // is "HV INSTALLED". Useful for sentinel-tests where operator wants a
+    // distinctive marker (e.g. "AAAAAAAAA") to pick out on screen.
+    const char* sentinel_text = nullptr;
+    // --diag-msr-timing MSR# — fire PMC_CMD_DIAG_MSR_TIMING and exit.
+    // Source for SCA/research/hyperjacking_2026_state.md §6.2.2.
+    bool     diag_msr_timing = false;
+    uint32_t diag_msr_id     = 0;
+    // --scan-box <seconds> — arm box-scan, poll for capture for N seconds,
+    // disarm + report. HV widens ScanOneEntity to log unknown classes +
+    // probe +0x1660 for ASCII text. First entity hit captured for the
+    // installer to retrieve. See SCA/research/sentinel/convar_candidates.md
+    // Tier-0 candidate m_customOwnerName.
+    bool     scan_box = false;
+    uint32_t scan_box_seconds = 0;
     // Tier-1 glow knobs. glow_set flips on any --glow-* flag.
     bool     glow_set      = false;
     bool     reconfig      = false;  // skip install entirely; just push knobs + exit
@@ -89,6 +140,7 @@ struct Args {
     uint8_t  glow_glowfix  = 2;
     uint8_t  glow_wvistype = 1;
     uint8_t  glow_wglowfix = 1;
+    uint8_t  glow_squad    = 0;      // --squad-glow on|off → SET_GLOW_PARAMS Arg2[7:0]
     // --live-memdump <dir> — Phase-4 CR3 + SET_CR3 + VIRT_READ bulk → three
     // section files. No scratch, no HOOK_INSTALL_DRAW (won't butcher .text
     // when hook RVA drifted vs current build).
@@ -158,6 +210,13 @@ static Args ParseArgs(int argc, char** argv) {
         if (std::strcmp(f, "--glow-fix")      == 0 && need(i,1)) { a.glow_glowfix  = (uint8_t)ParseHex(argv[++i]); a.glow_set = true; continue; }
         if (std::strcmp(f, "--write-vistype") == 0 && need(i,1)) { a.glow_wvistype = (uint8_t)ParseHex(argv[++i]); a.glow_set = true; continue; }
         if (std::strcmp(f, "--write-glowfix") == 0 && need(i,1)) { a.glow_wglowfix = (uint8_t)ParseHex(argv[++i]); a.glow_set = true; continue; }
+        if (std::strcmp(f, "--squad-glow")   == 0 && need(i,1)) {
+            const char* v = argv[++i]; a.glow_set = true;
+            if      (std::strcmp(v, "on")  == 0) a.glow_squad = 1;
+            else if (std::strcmp(v, "off") == 0) a.glow_squad = 0;
+            else                                 a.glow_squad = (uint8_t)ParseHex(v);
+            continue;
+        }
 
         // --aim-params: packed u64 → PMC_CMD_SET_AIM_PARAMS (0x21).
         // Individual flags mirror the q4.4 bitfield layout; see HypeAimTrigger.h.
@@ -168,7 +227,37 @@ static Args ParseArgs(int argc, char** argv) {
         if (std::strcmp(f, "--aim-debounce")   == 0 && need(i,1)) { a.aim_debounce    = (uint8_t)ParseHex(argv[++i]); a.aim_set = true; continue; }
         if (std::strcmp(f, "--aim-fov")        == 0 && need(i,1)) { a.aim_fov         = (uint8_t)ParseHex(argv[++i]); a.aim_set = true; continue; }
 
-        if (std::strcmp(f, "--menu-disable")   == 0)              { a.menu_disabled   = true; continue; }
+        if (std::strcmp(f, "--menu-disable")       == 0) { a.menu_disabled       = true; continue; }
+        if (std::strcmp(f, "--no-install-confirm") == 0) { a.no_install_confirm  = true; continue; }
+
+        if (std::strcmp(f, "--render-sink") == 0 && need(i, 2)) {
+            a.render_sink_rva          = ParseHex(argv[++i]);
+            a.render_sink_len          = (uint32_t)ParseHex(argv[++i]);
+            a.render_sink_indirect_off = 0;
+            a.render_sink_set          = true;
+            continue;
+        }
+        if (std::strcmp(f, "--render-sink-indirect") == 0 && need(i, 3)) {
+            a.render_sink_rva          = ParseHex(argv[++i]);
+            a.render_sink_indirect_off = (uint32_t)ParseHex(argv[++i]);
+            a.render_sink_len          = (uint32_t)ParseHex(argv[++i]);
+            a.render_sink_set          = true;
+            continue;
+        }
+        if (std::strcmp(f, "--sentinel") == 0 && need(i, 1)) {
+            a.sentinel_text = argv[++i];
+            continue;
+        }
+        if (std::strcmp(f, "--diag-msr-timing") == 0 && need(i, 1)) {
+            a.diag_msr_timing = true;
+            a.diag_msr_id     = (uint32_t)ParseHex(argv[++i]);
+            continue;
+        }
+        if (std::strcmp(f, "--scan-box") == 0 && need(i, 1)) {
+            a.scan_box         = true;
+            a.scan_box_seconds = (uint32_t)ParseHex(argv[++i]);
+            continue;
+        }
 
         if (std::strcmp(f, "--rva") == 0 && need(i,1))         { a.rva         = ParseHex(argv[++i]); continue; }
         if (std::strcmp(f, "--module-base") == 0 && need(i,1)) { a.module_base = ParseHex(argv[++i]); continue; }
@@ -776,6 +865,64 @@ int main(int argc, char** argv) {
         return (s == covert::kStatusOk) ? 0 : 25;
     }
 
+    // --scan-box <seconds> — arm box-scan mode, poll for first capture.
+    // HV's ScanOneEntity widens to log non-player class names + probe
+    // +0x1660 for ASCII (deathbox m_customOwnerName signature). Polls
+    // every 500ms for up to <seconds>; on first hit prints the captured
+    // ent VA + disarms scan mode automatically. Operator follow-up:
+    //   SCAhost.exe --peb <peb> --render-sink <ent_va + 0x1660> 32 --sentinel "ZZZZZZZZ"
+    if (args.scan_box) {
+        uint64_t r = 0;
+        const uint32_t s_arm = ch.Fire(PMC_CMD_SCAN_BOX, 1, 0, 0, &r);
+        if (s_arm != covert::kStatusOk) {
+            std::printf("[FAIL] SCAN_BOX arm status=%u\n", s_arm);
+            return 27;
+        }
+        std::printf("[OK] SCAN_BOX armed — polling 500ms for up to %us\n",
+                    args.scan_box_seconds);
+        const uint32_t max_polls = (args.scan_box_seconds * 2);
+        uint64_t captured = 0;
+        for (uint32_t i = 0; i < max_polls; ++i) {
+            Sleep(500);
+            uint64_t got = 0;
+            const uint32_t s = ch.Fire(PMC_CMD_SCAN_BOX, 2, 0, 0, &got);
+            if (s != covert::kStatusOk) continue;
+            if (got != 0) { captured = got; break; }
+        }
+        // Disarm regardless.
+        ch.Fire(PMC_CMD_SCAN_BOX, 0, 0, 0, &r);
+        if (captured) {
+            std::printf("BOX_FOUND ent=0x%016llX  next: --render-sink 0x%llx 32 --sentinel \"ZZZZZZZZ\"\n",
+                        (unsigned long long)captured,
+                        (unsigned long long)(captured + 0x1660));
+            return 0;
+        }
+        std::printf("BOX_NONE — no entity with ASCII text at +0x1660 in %us\n",
+                    args.scan_box_seconds);
+        return 28;
+    }
+
+    // --diag-msr-timing MSR# — one-shot RDMSR/RDTSC-paired timing probe.
+    // Source for SCA/research/hyperjacking_2026_state.md §6.2.2 — measures
+    // the VMEXIT round-trip cost of an MSR shadowed by SCA so we can
+    // compare against bare-metal RDMSR delta (run from a non-HYPEBOOT boot
+    // for the baseline). Decision rule: if HV avg < 2-3x bare-metal avg,
+    // leave the EFER/VM_CR/VM_HSAVE_PA shadows in place — within
+    // SMI/page-walk noise and not worth the compensation.
+    if (args.diag_msr_timing) {
+        uint64_t packed = 0;
+        uint64_t max_cycles = 0;
+        const uint32_t s = ch.Fire(PMC_CMD_DIAG_MSR_TIMING,
+                                   (uint64_t)args.diag_msr_id, 0, 0,
+                                   &packed, &max_cycles);
+        const uint32_t min_cy = (uint32_t)(packed >> 32);
+        const uint32_t avg_cy = (uint32_t)(packed & 0xFFFFFFFFu);
+        std::printf("MSR_TIMING msr=0x%X min=%u avg=%u max=%llu status=%u\n",
+                    args.diag_msr_id, min_cy, avg_cy,
+                    (unsigned long long)max_cycles, s);
+        return (s == covert::kStatusOk) ? 0 : 26;
+    }
+
     // --drain: pull 4MB HV ring via PMC_CMD_HV_LOG_READ; HypeDrain.efi layout.
     if (args.drain) {
         constexpr uint32_t kQwords = HV_DEBUG_LOG_SIZE / 8;
@@ -1149,14 +1296,15 @@ int main(int argc, char** argv) {
             | ((uint64_t)a.glow_glowfix  << 40)
             | ((uint64_t)a.glow_wvistype << 48)
             | ((uint64_t)a.glow_wglowfix << 56);
+        const uint64_t packed2 = (uint64_t)a.glow_squad;  // Arg2[7:0] = SquadGlow
         uint64_t result = 0;
-        const uint32_t s = ch.Fire(PMC_CMD_SET_GLOW_PARAMS, packed, 0, 0, &result);
+        const uint32_t s = ch.Fire(PMC_CMD_SET_GLOW_PARAMS, packed, packed2, 0, &result);
         std::printf("GLOW_PARAMS slot=%u mask=0x%02X filter=%u enabled=%u "
-                    "vt=%u(w=%u) gf=%u(w=%u) packed=0x%016llX status=%u\n",
+                    "vt=%u(w=%u) gf=%u(w=%u) squad=%u packed=0x%016llX/0x%016llX status=%u\n",
                     a.glow_slot, a.glow_mask, a.glow_filter, a.glow_enabled,
                     a.glow_vistype, a.glow_wvistype,
-                    a.glow_glowfix, a.glow_wglowfix,
-                    (unsigned long long)packed, s);
+                    a.glow_glowfix, a.glow_wglowfix, a.glow_squad,
+                    (unsigned long long)packed, (unsigned long long)packed2, s);
         return s;
     };
 
@@ -1242,6 +1390,7 @@ int main(int argc, char** argv) {
             | ((uint64_t)args.glow_glowfix  << 40)
             | ((uint64_t)args.glow_wvistype << 48)
             | ((uint64_t)args.glow_wglowfix << 56);
+        gp_cmd.arg2   = (uint64_t)args.glow_squad;  // Arg2[7:0] = SquadGlow
     }
     if (args.aim_set) {
         auto& ap_cmd  = tail[tail_n++];
@@ -1307,11 +1456,71 @@ int main(int argc, char** argv) {
     if (args.glow_set) {
         const covert::Cmd& gp = tail[3];
         Log(args, "GLOW_PARAMS slot=%u mask=0x%02X filter=%u enabled=%u "
-                  "vt=%u(w=%u) gf=%u(w=%u) packed=0x%016llX status=%u\n",
+                  "vt=%u(w=%u) gf=%u(w=%u) squad=%u packed=0x%016llX/0x%016llX status=%u\n",
             args.glow_slot, args.glow_mask, args.glow_filter, args.glow_enabled,
             args.glow_vistype, args.glow_wvistype,
-            args.glow_glowfix, args.glow_wglowfix,
-            (unsigned long long)gp.arg1, gp.status);
+            args.glow_glowfix, args.glow_wglowfix, args.glow_squad,
+            (unsigned long long)gp.arg1, (unsigned long long)gp.arg2, gp.status);
+    }
+
+    // Optional sink override — sentinel-test iteration. Pushed BEFORE the
+    // install-confirm RENDER_TEXT so the override is live when the entry
+    // dispatches. SET_SINK is an atomic transition: HV restores the prior
+    // sink (if any active) using its captured backup VA, drops the backup,
+    // then installs the new override.
+    if (args.render_sink_set) {
+        uint64_t set_sink_result = 0;
+        const uint32_t s = ch.Fire(PMC_CMD_RENDER_SET_SINK,
+                                   args.render_sink_rva,
+                                   (uint64_t)args.render_sink_len,
+                                   (uint64_t)args.render_sink_indirect_off,
+                                   &set_sink_result);
+        std::printf("RENDER_SET_SINK rva=0x%llX len=0x%X indirect_off=0x%X status=%u\n",
+                    (unsigned long long)args.render_sink_rva,
+                    args.render_sink_len,
+                    args.render_sink_indirect_off, s);
+        if (s != covert::kStatusOk) {
+            FreeScratch(scratch_buf);
+            return 60;
+        }
+    }
+
+    // Install-confirm render push — fires after a fully successful install.
+    // Default text is "HV INSTALLED"; --sentinel "TEXT" overrides for
+    // sentinel-test iteration. Writes the chosen text into the last 64
+    // bytes of the VirtualLock'd scratch (scratch is still alive here).
+    // HV reads the string synchronously during the NPF; buffer can be
+    // freed immediately after Fire() returns.
+    // --no-install-confirm skips this (useful for scripted / repeated installs).
+    if (!args.no_install_confirm) {
+        constexpr uint32_t kConfirmOff = kScratchBytes - 64;
+        const char* msg = args.sentinel_text ? args.sentinel_text : "HV INSTALLED";
+        // Bound copy at 63 chars + NUL (scratch slot is 64 bytes; HV caps at
+        // RENDER_TEXT_MAX=63 anyway).
+        std::memset(static_cast<char*>(scratch_buf) + kConfirmOff, 0, 64);
+        std::strncpy(static_cast<char*>(scratch_buf) + kConfirmOff, msg, 63);
+
+        // 300 payload ticks ≈ 5 s at 60 fps (one tick per render-hook NPF).
+        // No flags by default — convar-value sinks ARE the rendered text;
+        // the legacy FORCE_FPS_CONVAR flag only applies to canon FPS sink.
+        const uint64_t render_arg1 = MakeRenderArg1(300, 0, 0, 0, 0);
+        const uint64_t string_gva  = scratch_gva + kConfirmOff;
+        uint64_t confirm_result = 0;
+        const uint32_t confirm_s = ch.Fire(PMC_CMD_RENDER_TEXT,
+                                           render_arg1, string_gva, 0,
+                                           &confirm_result);
+        if (confirm_s == covert::kStatusOk && confirm_result != 0) {
+            std::printf("[OK] RENDER_TEXT queued (300 ticks, msg=\"%s\")"
+                        " — watch RDQ/RDH in drain%s\n",
+                        msg,
+                        args.render_sink_set
+                            ? " (sentinel-test on overridden sink)"
+                            : "");
+        } else {
+            std::printf("[WARN] RENDER_TEXT status=%u result=%llu\n",
+                        confirm_s,
+                        static_cast<unsigned long long>(confirm_result));
+        }
     }
 
     FreeScratch(scratch_buf);
