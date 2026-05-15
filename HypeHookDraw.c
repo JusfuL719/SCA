@@ -372,20 +372,28 @@ static UINT8 SlotForTier(UINT8 Tier) {
     }
 }
 
+static UINT8 gEverWroteBucket = 0;
+static UINT8 gEverWroteEntity = 0;
+
 static VOID InitHighlightSlot(UINT64 Cr3, UINT64 Settings,
                                UINT8 Slot, UINT32 R, UINT32 G, UINT32 B) {
     if (Slot == 0) return;
     UINT64 Base = Settings + APEX_HIGHLIGHT_TYPE_SIZE * (UINT64)Slot;
     UINT32 FnBits = APEX_FN_BITS_VIS;
-    // FunctionBits at bucket+0x2C — verified layout (2026-05-13).
-    // SetHighlightId (live RVA 0x00818500, was 0x817600 pre +0xF00 drift)
-    // copies bucket+0x2C → entity+0x268 on success path. +0x00 is a
-    // type tag, NOT FunctionBits. cab44ef "+0x2C kills glow" test was
-    // confounded by cycle 14 [B]'s 16k NPF/sec EOI-trap storm.
-    WriteGuestVirtual(Cr3, Base + 0x2C, &FnBits, 4);
-    WriteGuestVirtual(Cr3, Base + 0x04, &R, 4);
-    WriteGuestVirtual(Cr3, Base + 0x08, &G, 4);
-    WriteGuestVirtual(Cr3, Base + 0x0C, &B, 4);
+    EFI_STATUS S1 = WriteGuestVirtual(Cr3, Base + 0x2C, &FnBits, 4);
+    EFI_STATUS S2 = WriteGuestVirtual(Cr3, Base + 0x04, &R, 4);
+    EFI_STATUS S3 = WriteGuestVirtual(Cr3, Base + 0x08, &G, 4);
+    EFI_STATUS S4 = WriteGuestVirtual(Cr3, Base + 0x0C, &B, 4);
+
+    if (!gEverWroteBucket) {
+        gEverWroteBucket = 1;
+        HvLogHex("EBG", Base);
+        HvLogHex("EBS", ((UINT64)S1 << 48) | ((UINT64)S2 << 32) |
+                        ((UINT64)S3 << 16) | (UINT64)S4);
+        UINT32 Readback = 0;
+        EFI_STATUS RS = ReadGuestVirtual(Cr3, Base + 0x04, &Readback, 4);
+        HvLogHex("EBR", ((UINT64)RS << 32) | (UINT64)Readback);
+    }
 }
 
 static VOID WriteEntityGlow(UINT64 Cr3, UINT64 Ent, UINT8 Slot) {
@@ -401,9 +409,18 @@ static VOID WriteEntityGlow(UINT64 Cr3, UINT64 Ent, UINT8 Slot) {
         WriteGuestVirtual(Cr3, Ent + APEX_ENT_GLOW_VISIBLE_TYPE, &VisType,  4);
     }
     WriteGuestVirtual(Cr3, Ent + APEX_ENT_GLOW_DISTANCE,     &GlowDist, 4);
-    WriteGuestVirtual(Cr3, Ent + APEX_ENT_HIGHLIGHT_ID,      &Slot,     1);
-    WriteGuestVirtual(Cr3, Ent + APEX_ENT_HIGHLIGHT_STACK,   &Slot,     1);
-    WriteGuestVirtual(Cr3, Ent + APEX_ENT_HIGHLIGHT_MASK,    &Mask,     1);
+    EFI_STATUS S1 = WriteGuestVirtual(Cr3, Ent + APEX_ENT_HIGHLIGHT_ID,    &Slot, 1);
+    EFI_STATUS S2 = WriteGuestVirtual(Cr3, Ent + APEX_ENT_HIGHLIGHT_STACK, &Slot, 1);
+    EFI_STATUS S3 = WriteGuestVirtual(Cr3, Ent + APEX_ENT_HIGHLIGHT_MASK,  &Mask, 1);
+
+    if (!gEverWroteEntity) {
+        gEverWroteEntity = 1;
+        HvLogHex("EHG", Ent);
+        HvLogHex("EHS", ((UINT64)S1 << 32) | ((UINT64)S2 << 16) | (UINT64)S3);
+        UINT8 RbId = 0;
+        EFI_STATUS RS = ReadGuestVirtual(Cr3, Ent + APEX_ENT_HIGHLIGHT_ID, &RbId, 1);
+        HvLogHex("EHR", ((UINT64)RS << 32) | ((UINT64)Slot << 8) | (UINT64)RbId);
+    }
 }
 
 // ---------- snapshot mirror (PEEK consumer) ----------
@@ -750,10 +767,17 @@ static VOID ScanOneEntity(UINT64 Cr3, UINT64 ImageBase, UINT32 Cursor, UINT64 Ti
 // ---------- glow rendering (tier-coded highlight) ----------
 static VOID RenderGlow(UINT64 Cr3, UINT64 ImageBase) {
     UINT64 HighlightSettings = 0;
-    if (EFI_ERROR(ReadGuestVirtual(Cr3,
-                                    ImageBase + APEX_OFF_HIGHLIGHT_SETTINGS,
-                                    &HighlightSettings, 8))
-        || HighlightSettings < 0x10000) return;
+    EFI_STATUS HsSt = ReadGuestVirtual(Cr3,
+                                       ImageBase + APEX_OFF_HIGHLIGHT_SETTINGS,
+                                       &HighlightSettings, 8);
+    static UINT8 gRgLogged = 0;
+    if (!gRgLogged) {
+        gRgLogged = 1;
+        HvLogHex("ERG", ImageBase + APEX_OFF_HIGHLIGHT_SETTINGS);
+        HvLogHex("ERS", ((UINT64)HsSt << 32));
+        HvLogHex("ERV", HighlightSettings);
+    }
+    if (EFI_ERROR(HsSt) || HighlightSettings < 0x10000) return;
 
     InitHighlightSlot(Cr3, HighlightSettings, APEX_SLOT_PLAYER,
                        APEX_F32_ONE,     APEX_F32_ZERO,    APEX_F32_ZERO);

@@ -373,6 +373,15 @@
   ET2 = HvLogHex("ET2 auto-fire count", FireCount)               # every 0x40 fires; use to gauge cadence drift
   DVN = HvLogHex("DVN NPF-witness exec GPA", ...)                 # first 64 exec-NPFs anywhere — is guest fetching protected pages at all?
   DVH = HvLogHex("DVH NPF-witness hook-page RIP", ...)            # first 16 exec-NPFs that match gDrawHookGpa — RIP at fault (vs DR0 which needs RIP==EntryVa)
+  EBG = HvLogHex("EBG first bucket write base VA", Base)          # one-shot per HV boot; ImageBase + APEX_OFF_HIGHLIGHT_SETTINGS + slot*stride + 0 — proves InitHighlightSlot reached
+  EBS = HvLogHex("EBS first bucket write status", packed)         # 4×EFI_STATUS packed 16b each (S1<<48|S2<<32|S3<<16|S4) for FnBits/R/G/B writes
+  EBR = HvLogHex("EBR first bucket readback", (status<<32)|R)     # readback of bucket+0x04 (R) after write — value should match what we wrote (1.0f bits = 0x3F800000)
+  EHG = HvLogHex("EHG first entity glow write Ent VA", Ent)       # one-shot per HV boot; first WriteEntityGlow call reached
+  EHS = HvLogHex("EHS first entity glow status", packed)          # 3×EFI_STATUS packed (S1<<32|S2<<16|S3) for HID/STACK/MASK writes
+  EHR = HvLogHex("EHR first entity glow readback", (st<<32)|(written<<8)|readback)  # readback of entity+0x298 HID after write — should match Slot we wrote
+  ERG = HvLogHex("ERG RenderGlow settings VA", VA)                # one-shot; ImageBase + APEX_OFF_HIGHLIGHT_SETTINGS — proves RenderGlow reached
+  ERS = HvLogHex("ERS RenderGlow settings read status", status<<32)  # EFI_STATUS from reading HighlightSettings pointer cell
+  ERV = HvLogHex("ERV RenderGlow settings pointer value", HighlightSettings)  # the actual value at *SettingsVA — if <0x10000 RenderGlow early-returns silently (THE bug we're hunting if glow doesn't render)
 
 ## Wrapper-A introspection probe (cycle 11e, hv-side-draw-plan §G-addendum)
 # One-shot per HV boot at HookDrawHandleInstall (no NPF dependency). Chain
