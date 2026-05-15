@@ -1,4 +1,4 @@
-# VGUI Probe Trace Spec
+# VGUI Probe Trace Spec (v2)
 
 - Date: `2026-05-14`
 
@@ -6,8 +6,14 @@ Read-only probe evidence fields expected from HV runtime sampling:
 - interface global VA read success/failure
 - interface pointer stability (frame-to-frame)
 - vtable pointer module-range sanity
-- slot target pointer stability for draw/pos/color candidates
+- slot target pointer stability for draw/pos/color/font candidates
 - fault counter and fail-closed latch state
+
+Static-side gating (new):
+- iface global must be derived via provenance (`mov reg, [rip+iface]; mov vtable, [reg]; call [vtable+disp]`).
+- 4 distinct slots required across draw_text/set_text_pos/set_text_color/set_font.
+- max slot index across resolved slots must be >= 16 (sanity floor for fat surface vtables).
+- assert/panic strings ('must derive from', 'can only be ...', 'Error:', 'Warning:') are dropped before xref analysis.
 
 Recommended marker namespace:
 - `VG0` params applied
@@ -16,4 +22,4 @@ Recommended marker namespace:
 - `VG3` fail-closed latch / rollback
 - `VG4` dry-run precheck pass
 - `VG5` backend heartbeat (skeleton only)
-- `VGQ` probe fault code
+- `VGF` probe fault code

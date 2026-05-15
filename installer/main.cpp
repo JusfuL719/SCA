@@ -151,11 +151,14 @@ struct Args {
     uint8_t  vgui_fail_closed  = 1;
     uint8_t  vgui_stable_need  = 8;
     uint8_t  vgui_max_faults   = 4;
-    uint32_t vgui_global_rva   = 0x025517E0u; // canon from vgui_dryrun_verdict_2026-05-14.md
-    uint8_t  vgui_slot_draw    = 1;
-    uint8_t  vgui_slot_pos     = 2;
-    uint8_t  vgui_slot_color   = 7;
-    uint8_t  vgui_slot_font    = 0;
+    // canon from output/canon/vgui_dryrun_verdict_2026-05-14.md (v2 provenance-tracked).
+    // Old pin (0x025517E0 + 1/2/7) was a panic-string trap; rewritten surface probe
+    // now resolves drawtext_vgui_centered iface 0x143D4C5A0 with fat surface vtable.
+    uint32_t vgui_global_rva   = 0x03D4C5A0u;
+    uint8_t  vgui_slot_draw    = 26;
+    uint8_t  vgui_slot_pos     = 36;
+    uint8_t  vgui_slot_color   = 92;
+    uint8_t  vgui_slot_font    = 25;
     uint16_t vgui_text_x       = 960;
     uint16_t vgui_text_y       = 120;
     uint32_t vgui_text_rgba    = 0xFFFFFFFFu;

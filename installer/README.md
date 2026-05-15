@@ -79,4 +79,6 @@ Any `--vgui-*` flag flips `vgui_set=true` and emits `SET_VGUI_PARAMS`
 (`0x23`) either at install-tail or as part of `--reconfig`.
 With `--vgui-enable` alone, defaults arm read-only probe mode:
 `Enabled=1 ProbeOnly=1 Rollback=0 FailClosed=1 StableNeed=8 MaxFaults=4`
-using canon `GlobalRva=0x025517E0` and slots `draw/pos/color=1/2/7`.
+using canon `GlobalRva=0x03D4C5A0` (drawtext_vgui_centered iface) and
+slots `draw/pos/color/font = 26/36/92/25`. Source:
+`output/canon/vgui_dryrun_verdict_2026-05-14.md` (v2 provenance-tracked).

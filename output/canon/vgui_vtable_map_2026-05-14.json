@@ -3,29 +3,527 @@
   "dumps": "/srv/nfs/shared/Shared/Tools/UNICORN_DUMPER/EAC/EAC/r5apex",
   "interfaces": [
     {
-      "global_rva": 39131104,
-      "global_va": "0x00000001425517E0",
+      "iface_rva": 64275872,
+      "iface_va": "0x0000000143D4C5A0",
       "names": [
-        "All hud elements must derive from vgui::Panel * (%s)\n"
+        "CHudMenu::MsgFunc_ShowMenu",
+        "Label.RuiFont",
+        "Label.RuiFontHeight",
+        "MenuTextFont",
+        "drawtext_vgui",
+        "drawtext_vgui_centered",
+        "vgui::HFont",
+        "vgui::Label"
       ],
-      "composite_score": 153,
+      "composite_score": 1764,
+      "n_unique_slots": 38,
+      "max_slot": 174,
       "ranked_slots": [
         {
-          "slot_index": 1,
-          "hits": 1,
+          "slot_index": 26,
+          "disp": 208,
+          "hits": 26,
           "roles": {
-            "draw_text_candidate": 1
+            "set_pos_candidate": 25,
+            "unknown": 1
           }
         },
         {
-          "slot_index": 7,
+          "slot_index": 22,
+          "disp": 176,
+          "hits": 16,
+          "roles": {
+            "set_pos_candidate": 16
+          }
+        },
+        {
+          "slot_index": 24,
+          "disp": 192,
+          "hits": 13,
+          "roles": {
+            "set_pos_candidate": 12,
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 16,
+          "disp": 128,
+          "hits": 13,
+          "roles": {
+            "set_pos_candidate": 11,
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 35,
+          "disp": 280,
+          "hits": 11,
+          "roles": {
+            "unknown": 4,
+            "set_pos_candidate": 7
+          }
+        },
+        {
+          "slot_index": 53,
+          "disp": 424,
+          "hits": 9,
+          "roles": {
+            "unknown": 6,
+            "set_pos_candidate": 3
+          }
+        },
+        {
+          "slot_index": 92,
+          "disp": 736,
+          "hits": 8,
+          "roles": {
+            "set_pos_candidate": 7,
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 152,
+          "disp": 1216,
+          "hits": 7,
+          "roles": {
+            "set_pos_candidate": 5,
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 88,
+          "disp": 704,
+          "hits": 6,
+          "roles": {
+            "unknown": 6
+          }
+        },
+        {
+          "slot_index": 93,
+          "disp": 744,
+          "hits": 6,
+          "roles": {
+            "set_pos_candidate": 5,
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 36,
+          "disp": 288,
+          "hits": 5,
+          "roles": {
+            "set_pos_candidate": 5
+          }
+        },
+        {
+          "slot_index": 52,
+          "disp": 416,
+          "hits": 5,
+          "roles": {
+            "unknown": 1,
+            "set_pos_candidate": 4
+          }
+        },
+        {
+          "slot_index": 40,
+          "disp": 320,
+          "hits": 5,
+          "roles": {
+            "unknown": 5
+          }
+        },
+        {
+          "slot_index": 14,
+          "disp": 112,
+          "hits": 4,
+          "roles": {
+            "set_pos_candidate": 4
+          }
+        },
+        {
+          "slot_index": 43,
+          "disp": 344,
+          "hits": 4,
+          "roles": {
+            "set_pos_candidate": 4
+          }
+        },
+        {
+          "slot_index": 157,
+          "disp": 1256,
+          "hits": 4,
+          "roles": {
+            "unknown": 4
+          }
+        },
+        {
+          "slot_index": 163,
+          "disp": 1304,
+          "hits": 3,
+          "roles": {
+            "set_pos_candidate": 3
+          }
+        },
+        {
+          "slot_index": 91,
+          "disp": 728,
+          "hits": 3,
+          "roles": {
+            "unknown": 2,
+            "set_pos_candidate": 1
+          }
+        },
+        {
+          "slot_index": 45,
+          "disp": 360,
+          "hits": 3,
+          "roles": {
+            "set_pos_candidate": 3
+          }
+        },
+        {
+          "slot_index": 54,
+          "disp": 432,
+          "hits": 2,
+          "roles": {
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 34,
+          "disp": 272,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 2
+          }
+        },
+        {
+          "slot_index": 25,
+          "disp": 200,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 1,
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 23,
+          "disp": 184,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 2
+          }
+        },
+        {
+          "slot_index": 133,
+          "disp": 1064,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 1,
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 134,
+          "disp": 1072,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 2
+          }
+        },
+        {
+          "slot_index": 95,
+          "disp": 760,
+          "hits": 2,
+          "roles": {
+            "unknown": 1,
+            "set_pos_candidate": 1
+          }
+        },
+        {
+          "slot_index": 30,
+          "disp": 240,
+          "hits": 2,
+          "roles": {
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 13,
+          "disp": 104,
+          "hits": 2,
+          "roles": {
+            "set_color_candidate": 1,
+            "set_pos_candidate": 1
+          }
+        },
+        {
+          "slot_index": 38,
+          "disp": 304,
+          "hits": 2,
+          "roles": {
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 44,
+          "disp": 352,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 2
+          }
+        },
+        {
+          "slot_index": 128,
+          "disp": 1024,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 2
+          }
+        },
+        {
+          "slot_index": 118,
+          "disp": 944,
+          "hits": 2,
+          "roles": {
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 37,
+          "disp": 296,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 2
+          }
+        },
+        {
+          "slot_index": 99,
+          "disp": 792,
+          "hits": 1,
+          "roles": {
+            "set_pos_candidate": 1
+          }
+        },
+        {
+          "slot_index": 159,
+          "disp": 1272,
           "hits": 1,
           "roles": {
             "unknown": 1
           }
         },
         {
-          "slot_index": 2,
+          "slot_index": 136,
+          "disp": 1088,
+          "hits": 1,
+          "roles": {
+            "set_pos_candidate": 1
+          }
+        },
+        {
+          "slot_index": 127,
+          "disp": 1016,
+          "hits": 1,
+          "roles": {
+            "set_pos_candidate": 1
+          }
+        },
+        {
+          "slot_index": 174,
+          "disp": 1392,
+          "hits": 1,
+          "roles": {
+            "set_color_candidate": 1
+          }
+        }
+      ]
+    },
+    {
+      "iface_rva": 65787072,
+      "iface_va": "0x0000000143EBD4C0",
+      "names": [
+        "VGUI_Surface031"
+      ],
+      "composite_score": 255,
+      "n_unique_slots": 15,
+      "max_slot": 102,
+      "ranked_slots": [
+        {
+          "slot_index": 102,
+          "disp": 816,
+          "hits": 2,
+          "roles": {
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 87,
+          "disp": 696,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 88,
+          "disp": 704,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 26,
+          "disp": 208,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 81,
+          "disp": 648,
+          "hits": 1,
+          "roles": {
+            "set_pos_candidate": 1
+          }
+        },
+        {
+          "slot_index": 39,
+          "disp": 312,
+          "hits": 1,
+          "roles": {
+            "set_pos_candidate": 1
+          }
+        },
+        {
+          "slot_index": 40,
+          "disp": 320,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 48,
+          "disp": 384,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 42,
+          "disp": 336,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 43,
+          "disp": 344,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 44,
+          "disp": 352,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 45,
+          "disp": 360,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 46,
+          "disp": 368,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 47,
+          "disp": 376,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 49,
+          "disp": 392,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        }
+      ]
+    },
+    {
+      "iface_rva": 64275744,
+      "iface_va": "0x0000000143D4C520",
+      "names": [
+        "drawtext_vgui_simple"
+      ],
+      "composite_score": 227,
+      "n_unique_slots": 6,
+      "max_slot": 82,
+      "ranked_slots": [
+        {
+          "slot_index": 82,
+          "disp": 656,
+          "hits": 2,
+          "roles": {
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 44,
+          "disp": 352,
+          "hits": 2,
+          "roles": {
+            "unknown": 2
+          }
+        },
+        {
+          "slot_index": 65,
+          "disp": 520,
+          "hits": 2,
+          "roles": {
+            "set_pos_candidate": 2
+          }
+        },
+        {
+          "slot_index": 42,
+          "disp": 336,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 38,
+          "disp": 304,
+          "hits": 1,
+          "roles": {
+            "unknown": 1
+          }
+        },
+        {
+          "slot_index": 32,
+          "disp": 256,
           "hits": 1,
           "roles": {
             "unknown": 1
